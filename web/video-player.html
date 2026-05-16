@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频播放器 - Modern Chat</title>
+    <link rel="stylesheet" href="js/css/layui.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #667eea;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .player-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            position: relative;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        
+        .video-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            z-index: 1;
+            position: relative;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            z-index: 2;
+        }
+        
+        .video-wrapper:hover .video-overlay {
+            opacity: 1;
+        }
+        
+        .play-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(52, 152, 219, 0.8);
+            border: none;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(52, 152, 219, 0.4);
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1);
+            background: rgba(52, 152, 219, 1);
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: transparent;
+            padding: 15px 20px;
+            backdrop-filter: none;
+            z-index: 1000;
+            opacity: 1;
+            min-height: 60px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+        
+        .spectrum-container {
+            width: 100%;
+            height: 40px;
+            margin-bottom: 10px;
+            background: transparent;
+            border-radius: 0;
+            overflow: visible;
+            position: relative;
+        }
+        
+        .spectrum-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4), 0 0 8px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #409eff, #67c23a);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.1s ease;
+            box-shadow: 0 0 12px rgba(64, 158, 255, 0.8), inset 0 0 6px rgba(255, 255, 255, 0.5);
+        }
+
+        .progress-handle {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(64, 158, 255, 1), 0 0 0 3px rgba(64, 158, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-container:hover .progress-handle {
+            opacity: 1;
+        }
+        
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .left-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .player-btn {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .player-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 5px 16px rgba(64, 158, 255, 0.5), 0 0 20px rgba(64, 158, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .time-display {
+            font-size: 14px;
+            color: #ffffff;
+            min-width: 120px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 14px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .volume-slider-wrapper {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            padding: 16px;
+            margin-bottom: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1001;
+            display: none;
+            min-width: 50px;
+        }
+
+        .volume-slider-wrapper.visible {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .volume-slider {
+            width: 12px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: visible;
+        }
+
+        .volume-bar {
+            width: 100%;
+            background: linear-gradient(0deg, #409eff, #67c23a);
+            border-radius: 6px;
+            height: 100%;
+            box-shadow: 0 0 8px rgba(64, 158, 255, 0.6), inset 0 1px 3px rgba(255, 255, 255, 0.4);
+            transition: height 0.1s ease;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+
+        .volume-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            transition: top 0.1s ease;
+            border: 2px solid #409eff;
+        }
+
+        .volume-handle:hover {
+            transform: translateX(-50%) scale(1.1);
+            box-shadow: 0 4px 12px rgba(64, 158, 255, 0.6);
+        }
+        
+        .speed-control {
+            position: relative;
+            display: inline-block;
+        }
+        
+        #speedBtn {
+            min-width: 50px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .speed-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            padding: 8px 0;
+            margin-bottom: 8px;
+            min-width: 80px;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1001;
+        }
+        
+        .speed-menu.visible {
+            display: block;
+        }
+        
+        .speed-option {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        
+        .speed-option:hover {
+            background: rgba(64, 158, 255, 0.3);
+            color: #fff;
+        }
+        
+        .speed-option.active {
+            color: #409eff;
+            font-weight: 600;
+            background: rgba(64, 158, 255, 0.15);
+        }
+        
+        .settings-control {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .settings-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            padding: 4px 0;
+            margin-bottom: 8px;
+            min-width: 120px;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1001;
+        }
+        
+        .settings-menu.visible {
+            display: block;
+        }
+        
+        .settings-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-option:hover {
+            background: rgba(64, 158, 255, 0.3);
+            color: #fff;
+        }
+        
+        .settings-option.active {
+            color: #409eff;
+            font-weight: 600;
+            background: rgba(64, 158, 255, 0.15);
+        }
+        
+        .menu {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+            display: none;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+            min-width: 120px;
+        }
+        
+        .menu-item:hover {
+            background: rgba(52, 152, 219, 0.3);
+        }
+        
+        .menu-separator {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 4px 0;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 8px;
+            transition: color 0.2s;
+        }
+        
+        .modal-close:hover {
+            color: #fff;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            width: 120px;
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .modal-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border: none;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .thumbnail-section {
+            display: flex;
+            gap: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .thumbnail-container {
+            width: 120px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .thumbnail-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .thumbnail-info .info-row {
+            padding: 6px 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-container">
+        <div class="video-wrapper" id="videoWrapper">
+            <div class="video-content">
+                <video id="videoPlayer"></video>
+                <div class="video-overlay" id="videoOverlay">
+                    <button class="play-btn" id="playPauseBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="spectrum-container" id="spectrumContainer">
+                    <canvas class="spectrum-canvas" id="spectrumCanvas"></canvas>
+                </div>
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                    <div class="progress-handle" id="progressHandle"></div>
+                </div>
+                <div class="controls-bar">
+                    <div class="left-controls">
+                        <button class="player-btn" id="playPauseControl">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </button>
+                        <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+                    </div>
+                    <div class="right-controls">
+                        <div class="volume-container">
+                            <button class="player-btn" id="volumeBtn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                </svg>
+                            </button>
+                            <div class="volume-slider-wrapper" id="volumeSliderWrapper">
+                                <div class="volume-slider" id="volumeSlider">
+                                    <div class="volume-bar" id="volumeBar"></div>
+                                    <div class="volume-handle" id="volumeHandle"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="player-btn" id="downloadBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                        <div class="speed-control">
+                            <button class="player-btn" id="speedBtn">
+                                <span id="speedText">1x</span>
+                            </button>
+                            <div class="speed-menu" id="speedMenu">
+                                <div class="speed-option" data-speed="2.0">2.0x</div>
+                                <div class="speed-option" data-speed="1.5">1.5x</div>
+                                <div class="speed-option" data-speed="1.25">1.25x</div>
+                                <div class="speed-option active" data-speed="1">1x</div>
+                                <div class="speed-option" data-speed="0.75">0.75x</div>
+                                <div class="speed-option" data-speed="0.5">0.5x</div>
+                            </div>
+                        </div>
+                        <div class="settings-control">
+                            <button class="player-btn" id="settingsBtn" title="设置">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                            </button>
+                            <div class="settings-menu" id="settingsMenu">
+                                <div class="settings-option" id="settingsPip">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                    </svg>
+                                    <span>画中画</span>
+                                </div>
+                                <div class="settings-option" id="settingsMirror">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 12l-8-8v5H5v6h8v5z"></path>
+                                        <path d="M3 12l8 8v-5h6v-6h-6v-5z"></path>
+                                    </svg>
+                                    <span>镜像画面</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="player-btn" id="loopBtn" title="循环播放">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                        </button>
+                        <button class="player-btn" id="fullscreenBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="menu" id="contextMenu">
+        <div class="menu-item" data-action="playPause">播放/暂停</div>
+        <div class="menu-item" data-action="mute">静音</div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="download">下载</div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="fullscreen">全屏</div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="videoInfo">视频详细信息</div>
+    </div>
+    
+    <!-- 视频详细信息弹窗 -->
+    <div class="modal-overlay" id="videoInfoModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">视频详细信息</span>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="thumbnail-section">
+                    <div class="thumbnail-container" id="thumbnailContainer">
+                        <img id="videoThumbnail" src="4204bf80-b41f-46fb-8d4e-8ef4f9efe583.png" alt="视频缩略图" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                    </div>
+                    <div class="thumbnail-info">
+                        <div class="info-row"><span class="info-label">视频格式：</span><span class="info-value" id="infoFormat">-</span></div>
+                        <div class="info-row"><span class="info-label">视频大小：</span><span class="info-value" id="infoSize">-</span></div>
+                    </div>
+                </div>
+                <div class="info-row"><span class="info-label">视频编码：</span><span class="info-value" id="infoVideoCodec">-</span></div>
+                <div class="info-row"><span class="info-label">音频格式：</span><span class="info-value" id="infoAudioFormat">-</span></div>
+                <div class="info-row"><span class="info-label">音频大小：</span><span class="info-value" id="infoAudioSize">-</span></div>
+                <div class="info-row"><span class="info-label">视频码率：</span><span class="info-value" id="infoVideoBitrate">-</span></div>
+                <div class="info-row"><span class="info-label">音频码率：</span><span class="info-value" id="infoAudioBitrate">-</span></div>
+                <div class="info-row"><span class="info-label">当前FPS：</span><span class="info-value" id="infoFPS">-</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" id="okBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 缓存进度条 -->
+    <div id="cacheProgress" style="display: none; position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 80%;">
+        <div class="layui-progress">
+            <div class="layui-progress-bar layui-bg-blue" id="videoCacheBar" style="width: 0%;"></div>
+        </div>
+        <div style="text-align: center; color: #fff; margin-top: 5px; font-size: 12px;" id="cacheStatus">正在缓存视频...</div>
+    </div>
+
+
+
+    <script src="js/layui.js"></script>
+    <script>
+        let videoPlayer = document.getElementById('videoPlayer');
+        let playPauseBtn = document.getElementById('playPauseBtn');
+        let playPauseControl = document.getElementById('playPauseControl');
+        let volumeBtn = document.getElementById('volumeBtn');
+        let downloadBtn = document.getElementById('downloadBtn');
+        let fullscreenBtn = document.getElementById('fullscreenBtn');
+        let loopBtn = document.getElementById('loopBtn');
+        let settingsPip = document.getElementById('settingsPip');
+        let settingsMirror = document.getElementById('settingsMirror');
+        let videoWrapper = document.getElementById('videoWrapper');
+        let videoOverlay = document.getElementById('videoOverlay');
+        let contextMenu = document.getElementById('contextMenu');
+        let progressContainer = document.getElementById('progressContainer');
+        let progressBar = document.getElementById('progressBar');
+        let progressHandle = document.getElementById('progressHandle');
+        let timeDisplay = document.getElementById('timeDisplay');
+        let volumeSlider = document.getElementById('volumeSlider');
+        let volumeBar = document.getElementById('volumeBar');
+        let isPlaying = false;
+        let isLoop = false;
+        
+        // 频谱图相关变量
+        let spectrumCanvas = document.getElementById('spectrumCanvas');
+        let spectrumContainer = document.getElementById('spectrumContainer');
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let animationId = null;
+        
+        // 控制栏自动隐藏相关变量
+        let controls = document.querySelector('.controls');
+        let hideTimeout = null;
+        let hideDelay = 5000; // 5秒后自动隐藏
+        
+        // 显示控制栏
+        function showControls() {
+            controls.classList.remove('hidden');
+            resetHideTimer();
+        }
+        
+        // 隐藏控制栏
+        function hideControls() {
+            if (isPlaying) {
+                controls.classList.add('hidden');
+            }
+        }
+        
+        // 重置隐藏计时器
+        function resetHideTimer() {
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            hideTimeout = setTimeout(hideControls, hideDelay);
+        }
+        
+        // 鼠标移动时显示控制栏
+        videoWrapper.addEventListener('mousemove', showControls);
+        
+        // 初始化频谱图
+        function initSpectrum() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.8;
+                
+                const source = audioContext.createMediaElementSource(videoPlayer);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                // 设置canvas尺寸
+                const rect = spectrumContainer.getBoundingClientRect();
+                spectrumCanvas.width = rect.width * window.devicePixelRatio;
+                spectrumCanvas.height = 40 * window.devicePixelRatio;
+                spectrumCanvas.style.width = rect.width + 'px';
+                spectrumCanvas.style.height = '40px';
+                
+                drawSpectrum();
+            } catch (error) {
+                console.error('初始化频谱图失败:', error);
+                spectrumContainer.style.display = 'none';
+            }
+        }
+        
+        // 绘制频谱图（从中间向两边衍生）
+        function drawSpectrum() {
+            if (!analyser || !dataArray || !spectrumCanvas) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            const ctx = spectrumCanvas.getContext('2d');
+            const width = spectrumCanvas.width;
+            const height = spectrumCanvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            const pointCount = 128;
+            
+            // 创建渐变颜色（火焰色系：橙红到金黄）
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            gradient.addColorStop(0, '#ff6b35');
+            gradient.addColorStop(0.3, '#f7931e');
+            gradient.addColorStop(0.5, '#ffd700');
+            gradient.addColorStop(0.7, '#f7931e');
+            gradient.addColorStop(1, '#ff6b35');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // 添加发光效果
+            ctx.shadowColor = 'rgba(255, 107, 53, 0.6)';
+            ctx.shadowBlur = 8;
+            
+            ctx.beginPath();
+            
+            const centerX = width / 2;
+            const centerY = height - 4;
+            
+            // 从中间向左边绘制
+            for (let i = pointCount; i >= 0; i--) {
+                const dataIndex = Math.floor(i * (dataArray.length / pointCount));
+                const frequency = dataArray[dataIndex] / 255;
+                const offsetX = (i / pointCount) * (width / 2);
+                const x = centerX - offsetX;
+                const y = centerY - (frequency * (height - 8));
+                
+                if (i === pointCount) {
+                    ctx.moveTo(x, y);
+                } else {
+                    const nextDataIndex = Math.floor((i + 1) * (dataArray.length / pointCount));
+                    const nextFrequency = dataArray[nextDataIndex] / 255;
+                    const nextOffsetX = ((i + 1) / pointCount) * (width / 2);
+                    const nextX = centerX - nextOffsetX;
+                    const nextY = centerY - (nextFrequency * (height - 8));
+                    
+                    ctx.lineTo(nextX, nextY);
+                }
+            }
+            
+            // 从中间向右边绘制
+            for (let i = 1; i <= pointCount; i++) {
+                const dataIndex = Math.floor(i * (dataArray.length / pointCount));
+                const frequency = dataArray[dataIndex] / 255;
+                const offsetX = (i / pointCount) * (width / 2);
+                const x = centerX + offsetX;
+                const y = centerY - (frequency * (height - 8));
+                
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            animationId = requestAnimationFrame(drawSpectrum);
+        }
+        
+        // 停止频谱图
+        function stopSpectrum() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        // 检查视频是否有音轨
+        function checkAudioTracks() {
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                console.log('[Spectrum] 视频元数据加载完成');
+                // 尝试初始化频谱（不再检查audioTracks，直接初始化）
+                try {
+                    spectrumContainer.style.display = 'block';
+                    initSpectrum();
+                    console.log('[Spectrum] 频谱初始化成功');
+                } catch (error) {
+                    console.error('[Spectrum] 频谱初始化失败:', error);
+                    spectrumContainer.style.display = 'none';
+                }
+            });
+            
+            // 视频播放时也尝试初始化
+            videoPlayer.addEventListener('play', () => {
+                if (!audioContext) {
+                    console.log('[Spectrum] 视频播放，尝试初始化频谱');
+                    try {
+                        spectrumContainer.style.display = 'block';
+                        initSpectrum();
+                    } catch (error) {
+                        console.error('[Spectrum] 播放时初始化失败:', error);
+                    }
+                }
+            });
+        }
+        
+        // 页面加载时检查音轨
+        checkAudioTracks();
+        
+        // FPS计算相关
+        let fpsFrameCount = 0;
+        let fpsLastTime = 0;
+        let fpsIntervalId = null;
+        
+        // 设置视频播放状态到任务栏
+        async function setVideoPlaybackStatus(isPlaying, progress = 0) {
+            if (window.electronAPI && window.electronAPI.tray) {
+                try {
+                    if (isPlaying) {
+                        await window.electronAPI.tray.setVideoIcon(progress);
+                    } else {
+                        await window.electronAPI.tray.setPlaybackStatus('video', false);
+                    }
+                } catch (err) {
+                    console.error('设置视频播放状态失败:', err);
+                }
+            }
+        }
+        
+        // 初始化 IndexedDB
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('ModernChatCache', 3);
+                
+                request.onerror = (event) => {
+                    console.error('IndexedDB 初始化失败:', event.target.error);
+                    reject(event.target.error);
+                };
+                
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log('IndexedDB 初始化成功');
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    
+                    if (!database.objectStoreNames.contains('videos')) {
+                        const videoStore = database.createObjectStore('videos', { keyPath: 'url' });
+                        videoStore.createIndex('cachedAt', 'cachedAt', { unique: false });
+                    }
+                    
+                    if (!database.objectStoreNames.contains('failedFiles')) {
+                        const failedStore = database.createObjectStore('failedFiles', { keyPath: 'url' });
+                        failedStore.createIndex('failedAt', 'failedAt', { unique: false });
+                    }
+                };
+            });
+        }
+        
+        // 记录加载失败的文件
+        function recordFailedFile(url) {
+            if (!db) return Promise.reject('IndexedDB not initialized');
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['failedFiles'], 'readwrite');
+                const store = transaction.objectStore('failedFiles');
+                
+                const failedFile = {
+                    url: url,
+                    failedAt: new Date().toISOString()
+                };
+                
+                const request = store.put(failedFile);
+                
+                request.onsuccess = () => {
+                    console.log('文件已标记为失败:', url);
+                    resolve();
+                };
+                
+                request.onerror = () => {
+                    console.error('记录失败文件失败:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // 检查文件是否加载失败过
+        function isFileFailed(url) {
+            if (!db) return Promise.resolve(false);
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['failedFiles'], 'readonly');
+                const store = transaction.objectStore('failedFiles');
+                const request = store.get(url);
+                
+                request.onsuccess = () => {
+                    resolve(request.result !== undefined);
+                };
+                
+                request.onerror = () => {
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // 移除失败文件记录
+        function removeFailedFile(url) {
+            if (!db) return Promise.resolve();
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['failedFiles'], 'readwrite');
+                const store = transaction.objectStore('failedFiles');
+                const request = store.delete(url);
+                
+                request.onsuccess = () => {
+                    console.log('已清除失败记录:', url);
+                    resolve();
+                };
+                
+                request.onerror = () => {
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // 缓存视频
+        function cacheVideo(url, blob) {
+            if (!db) return Promise.reject('IndexedDB not initialized');
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['videos'], 'readwrite');
+                const store = transaction.objectStore('videos');
+                
+                const cachedVideo = {
+                    url: url,
+                    blob: blob,
+                    cachedAt: new Date().toISOString()
+                };
+                
+                const request = store.put(cachedVideo);
+                
+                request.onsuccess = () => {
+                    console.log('视频已缓存:', url);
+                    resolve();
+                };
+                
+                request.onerror = () => {
+                    console.error('视频缓存失败:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // 获取缓存的视频
+        function getCachedVideo(url) {
+            if (!db) {
+                console.log('[Cache] IndexedDB未初始化，跳过缓存查询');
+                return Promise.resolve(null);
+            }
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['videos'], 'readonly');
+                const store = transaction.objectStore('videos');
+                const request = store.get(url);
+                
+                request.onsuccess = () => {
+                    if (request.result) {
+                        console.log('[Cache] ✅ 找到缓存视频:', url);
+                        resolve(request.result);
+                    } else {
+                        console.log('[Cache] 🔍 未找到精确匹配，尝试模糊匹配:', url);
+                        // 尝试遍历所有缓存项，检查是否有匹配的
+                        const getAllRequest = store.getAll();
+                        getAllRequest.onsuccess = () => {
+                            const allVideos = getAllRequest.result || [];
+                            console.log('[Cache] 所有缓存视频数量:', allVideos.length);
+                            
+                            if (allVideos.length === 0) {
+                                console.log('[Cache] ❌ 没有找到任何缓存视频');
+                                resolve(null);
+                                return;
+                            }
+                            
+                            // 获取请求URL的文件名
+                            let fileName = '';
+                            try {
+                                const urlObj = new URL(url);
+                                fileName = urlObj.pathname.split('/').pop().split('?')[0];
+                            } catch (e) {
+                                // 如果URL解析失败，直接使用URL作为文件名
+                                fileName = url.split('/').pop().split('?')[0];
+                            }
+                            
+                            console.log('[Cache] 尝试匹配文件名:', fileName);
+                            
+                            // 尝试多种匹配方式
+                            let matchedVideo = null;
+                            
+                            // 方式1: 文件名完全匹配（忽略查询参数）
+                            matchedVideo = allVideos.find(video => {
+                                try {
+                                    const videoUrlObj = new URL(video.url);
+                                    const videoFileName = videoUrlObj.pathname.split('/').pop().split('?')[0];
+                                    return videoFileName === fileName;
+                                } catch (e) {
+                                    const videoFileName = video.url.split('/').pop().split('?')[0];
+                                    return videoFileName === fileName;
+                                }
+                            });
+                            
+                            if (matchedVideo) {
+                                console.log('[Cache] ✅ 通过文件名匹配找到缓存:', matchedVideo.url);
+                                resolve(matchedVideo);
+                                return;
+                            }
+                            
+                            // 方式2: URL包含匹配
+                            matchedVideo = allVideos.find(video => 
+                                video.url.includes(fileName) || url.includes(video.url.split('/').pop().split('?')[0])
+                            );
+                            
+                            if (matchedVideo) {
+                                console.log('[Cache] ✅ 通过URL包含匹配找到缓存:', matchedVideo.url);
+                                resolve(matchedVideo);
+                                return;
+                            }
+                            
+                            // 方式3: 解码后的URL匹配
+                            const decodedUrl = decodeURIComponent(url);
+                            matchedVideo = allVideos.find(video => 
+                                video.url === decodedUrl || decodeURIComponent(video.url) === decodedUrl
+                            );
+                            
+                            if (matchedVideo) {
+                                console.log('[Cache] ✅ 通过解码URL匹配找到缓存:', matchedVideo.url);
+                                resolve(matchedVideo);
+                                return;
+                            }
+                            
+                            console.log('[Cache] ❌ 所有匹配方式都失败，未找到缓存');
+                            resolve(null);
+                        };
+                        getAllRequest.onerror = () => {
+                            console.error('[Cache] 获取所有缓存失败');
+                            resolve(null);
+                        };
+                    }
+                };
+                
+                request.onerror = () => {
+                    console.error('[Cache] 查询缓存失败:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // 显示缓存进度
+        function showCacheProgress(percent, status) {
+            const cacheProgress = document.getElementById('cacheProgress');
+            const videoCacheBar = document.getElementById('videoCacheBar');
+            const cacheStatus = document.getElementById('cacheStatus');
+            
+            cacheProgress.style.display = 'block';
+            videoCacheBar.style.width = percent + '%';
+            cacheStatus.textContent = status;
+        }
+        
+        // 隐藏缓存进度
+        function hideCacheProgress() {
+            const cacheProgress = document.getElementById('cacheProgress');
+            cacheProgress.style.display = 'none';
+        }
+        
+        // 获取URL参数
+        function getUrlParams() {
+            let params = {};
+            let search = window.location.search.substring(1);
+            let pairs = search.split('&');
+            for (let pair of pairs) {
+                let [key, value] = pair.split('=');
+                params[decodeURIComponent(key)] = decodeURIComponent(value);
+            }
+            return params;
+        }
+        
+        // 检查视频大小和时长，超过阈值时弹出警告
+        async function checkVideoSizeAndDuration(url) {
+            const MAX_SIZE = 150 * 1024 * 1024; // 150MB
+            const MAX_DURATION = 30 * 60; // 30分钟（秒）
+            
+            // 先尝试获取文件大小
+            let fileSize = null;
+            try {
+                const size = await getFileSize(url);
+                fileSize = size;
+                console.log('视频文件大小:', formatFileSize(fileSize));
+            } catch (error) {
+                console.log('无法获取视频文件大小:', error);
+            }
+            
+            // 如果文件大小超过阈值，弹出警告
+            if (fileSize !== null && fileSize > MAX_SIZE) {
+                const confirmResult = await showConfirmDialog(
+                    `视频过大（${formatFileSize(fileSize)}），是否继续缓存？`,
+                    '这可能占用大量存储空间'
+                );
+                return confirmResult;
+            }
+            
+            // 如果无法获取文件大小，尝试获取视频时长
+            if (fileSize === null) {
+                let duration = null;
+                try {
+                    duration = await getVideoDuration(url);
+                    console.log('视频时长:', formatDuration(duration));
+                } catch (error) {
+                    console.log('无法获取视频时长:', error);
+                }
+                
+                // 如果视频时长超过阈值，弹出警告
+                if (duration !== null && duration > MAX_DURATION) {
+                    const confirmResult = await showConfirmDialog(
+                        `视频大小判断失败，但总时长较长（${formatDuration(duration)}），是否继续缓存？`,
+                        '这可能占用大量存储空间'
+                    );
+                    return confirmResult;
+                }
+            }
+            
+            // 没有超过阈值，继续缓存
+            return true;
+        }
+        
+        // 获取文件大小
+        async function getFileSize(url) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('HEAD', url, true);
+                xhr.onload = function() {
+                    const contentLength = xhr.getResponseHeader('Content-Length');
+                    if (contentLength) {
+                        resolve(parseInt(contentLength, 10));
+                    } else {
+                        reject(new Error('无法获取 Content-Length'));
+                    }
+                };
+                xhr.onerror = function() {
+                    reject(new Error('请求失败'));
+                };
+                xhr.timeout = 5000;
+                xhr.ontimeout = function() {
+                    reject(new Error('请求超时'));
+                };
+                xhr.send();
+            });
+        }
+        
+        // 获取视频时长
+        async function getVideoDuration(url) {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.src = url;
+                
+                const onLoadedMetadata = function() {
+                    video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                    video.removeEventListener('error', onError);
+                    resolve(video.duration);
+                };
+                
+                const onError = function() {
+                    video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                    video.removeEventListener('error', onError);
+                    reject(new Error('无法加载视频元数据'));
+                };
+                
+                video.addEventListener('loadedmetadata', onLoadedMetadata);
+                video.addEventListener('error', onError);
+                
+                // 设置超时
+                setTimeout(() => {
+                    video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                    video.removeEventListener('error', onError);
+                    reject(new Error('获取时长超时'));
+                }, 10000);
+            });
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        // 格式化时长
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours}小时${minutes}分${secs}秒`;
+            }
+            return `${minutes}分${secs}秒`;
+        }
+        
+        // 显示确认对话框
+        function showConfirmDialog(title, message) {
+            return new Promise((resolve) => {
+                // 创建对话框
+                const dialogOverlay = document.createElement('div');
+                dialogOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                `;
+                
+                const dialog = document.createElement('div');
+                dialog.style.cssText = `
+                    background: white;
+                    border-radius: 12px;
+                    padding: 24px;
+                    max-width: 360px;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+                `;
+                
+                const titleEl = document.createElement('h3');
+                titleEl.textContent = title;
+                titleEl.style.cssText = `
+                    margin: 0 0 12px 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #1a1a1a;
+                `;
+                
+                const messageEl = document.createElement('p');
+                messageEl.textContent = message;
+                messageEl.style.cssText = `
+                    margin: 0 0 20px 0;
+                    font-size: 14px;
+                    color: #666;
+                `;
+                
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.cssText = `
+                    display: flex;
+                    gap: 12px;
+                    justify-content: flex-end;
+                `;
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = '否';
+                cancelBtn.style.cssText = `
+                    padding: 8px 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    background: white;
+                    cursor: pointer;
+                    font-size: 14px;
+                    color: #666;
+                    transition: all 0.2s;
+                `;
+                cancelBtn.onclick = () => {
+                    dialogOverlay.remove();
+                    resolve(false);
+                };
+                cancelBtn.onmouseenter = () => { cancelBtn.style.background = '#f5f5f5'; };
+                cancelBtn.onmouseleave = () => { cancelBtn.style.background = 'white'; };
+                
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = '是';
+                confirmBtn.style.cssText = `
+                    padding: 8px 20px;
+                    border: none;
+                    border-radius: 6px;
+                    background: #6366f1;
+                    cursor: pointer;
+                    font-size: 14px;
+                    color: white;
+                    transition: all 0.2s;
+                `;
+                confirmBtn.onclick = () => {
+                    dialogOverlay.remove();
+                    resolve(true);
+                };
+                confirmBtn.onmouseenter = () => { confirmBtn.style.background = '#4f46e5'; };
+                confirmBtn.onmouseleave = () => { confirmBtn.style.background = '#6366f1'; };
+                
+                buttonContainer.appendChild(cancelBtn);
+                buttonContainer.appendChild(confirmBtn);
+                dialog.appendChild(titleEl);
+                dialog.appendChild(messageEl);
+                dialog.appendChild(buttonContainer);
+                dialogOverlay.appendChild(dialog);
+                document.body.appendChild(dialogOverlay);
+            });
+        }
+        
+        // 初始化播放器
+        async function initPlayer() {
+            let params = getUrlParams();
+            let videoUrl = params.url;
+            let videoName = params.name || '视频';
+            
+            // 移除uploads/前缀
+            if (videoName.startsWith('uploads/')) {
+                videoName = videoName.substring('uploads/'.length);
+            }
+            
+            console.log('视频播放器初始化:', {
+                videoUrl: videoUrl,
+                videoName: videoName
+            });
+            
+            document.title = `Modern-chat - 视频播放器[${videoName}]`;
+            
+            if (videoUrl) {
+                await loadVideo(videoUrl);
+            } else {
+                // 如果没有传递视频URL，显示错误并关闭窗口
+                alert('URL为空，无法播放视频');
+                setTimeout(() => {
+                    window.close();
+                }, 1000);
+            }
+        }
+        
+        // 设置视频事件监听器（无论从缓存还是网络加载都需要）
+        function setupVideoEventListeners(videoUrl) {
+            // 移除已存在的监听器，避免重复绑定
+            videoPlayer.removeEventListener('loadedmetadata', onLoadedMetadata);
+            videoPlayer.removeEventListener('canplay', onCanPlay);
+            videoPlayer.removeEventListener('error', onVideoError);
+            videoPlayer.removeEventListener('timeupdate', onTimeUpdate);
+            videoPlayer.removeEventListener('play', onPlay);
+            videoPlayer.removeEventListener('pause', onPause);
+            videoPlayer.removeEventListener('ended', onEnded);
+            
+            function onLoadedMetadata() {
+                console.log('视频元数据加载完成，时长:', videoPlayer.duration);
+                updateTimeDisplay();
+                updateProgress();
+            }
+            
+            function onCanPlay() {
+                console.log('视频可以播放');
+            }
+            
+            async function onVideoError(err) {
+                console.error('视频加载错误:', err);
+                
+                // 检查是否是 ffmpeg 像素格式错误（底层错误，不影响播放）
+                if (err && err.message && err.message.includes('Unsupported pixel format')) {
+                    console.warn('ffmpeg像素格式警告，尝试继续播放');
+                    return;
+                }
+                
+                // 记录失败的文件
+                await recordFailedFile(videoUrl);
+                if (videoPlayer.error) {
+                    console.error('视频错误代码:', videoPlayer.error.code);
+                    console.error('视频错误消息:', videoPlayer.error.message);
+                    
+                    // 只在真正无法播放时显示错误提示
+                    if (videoPlayer.error.code !== 3) { // 3 = MEDIA_ERR_DECODE
+                        alert(`视频加载失败: ${videoPlayer.error.message}\n错误代码: ${videoPlayer.error.code}\n视频地址: ${videoUrl}`);
+                    } else {
+                        console.warn('视频解码错误，可能是格式不支持');
+                    }
+                } else {
+                    console.error('视频错误对象为空');
+                }
+            }
+            
+            function onTimeUpdate() {
+                updateProgress();
+                updateTimeDisplay();
+                // 更新任务栏进度
+                if (isPlaying) {
+                    let progress = 0;
+                    if (videoPlayer.duration && !isNaN(videoPlayer.duration) && videoPlayer.duration > 0) {
+                        progress = videoPlayer.currentTime / videoPlayer.duration;
+                    }
+                    setVideoPlaybackStatus(true, progress);
+                }
+            }
+            
+            function onPlay() {
+                console.log('视频开始播放');
+                isPlaying = true;
+                updatePlayPauseIcon(true);
+                videoOverlay.style.display = 'none';
+                resetHideTimer();
+                // 更新任务栏图标
+                // 即使 duration 还没有加载完成，也要设置任务栏图标
+                let progress = 0;
+                if (videoPlayer.duration && !isNaN(videoPlayer.duration) && videoPlayer.duration > 0) {
+                    progress = videoPlayer.currentTime / videoPlayer.duration;
+                }
+                console.log('视频播放 - 设置任务栏图标, progress:', progress, 'duration:', videoPlayer.duration);
+                setVideoPlaybackStatus(true, progress);
+            }
+            
+            function onPause() {
+                console.log('视频暂停');
+                isPlaying = false;
+                updatePlayPauseIcon(false);
+                videoOverlay.style.display = 'flex';
+                showControls();
+                // 更新任务栏图标（暂停状态）
+                setVideoPlaybackStatus(false);
+            }
+            
+            function onEnded() {
+                console.log('视频播放结束');
+                if (isLoop) {
+                    // 循环播放
+                    videoPlayer.currentTime = 0;
+                    videoPlayer.play().catch(err => {
+                        console.error('循环播放失败:', err);
+                    });
+                } else {
+                    isPlaying = false;
+                    updatePlayPauseIcon(false);
+                    videoOverlay.style.display = 'flex';
+                    // 更新任务栏图标（播放结束）
+                    setVideoPlaybackStatus(false);
+                }
+            }
+            
+            // 设置事件监听器
+            videoPlayer.addEventListener('loadedmetadata', onLoadedMetadata);
+            videoPlayer.addEventListener('canplay', onCanPlay);
+            videoPlayer.addEventListener('error', onVideoError);
+            videoPlayer.addEventListener('timeupdate', onTimeUpdate);
+            videoPlayer.addEventListener('play', onPlay);
+            videoPlayer.addEventListener('pause', onPause);
+            videoPlayer.addEventListener('ended', onEnded);
+        }
+        
+        async function loadVideo(videoUrl) {
+            // 如果是 blob URL，直接加载，不需要缓存
+            if (videoUrl.startsWith('blob:')) {
+                console.log('直接加载 blob URL，无需缓存:', videoUrl);
+                
+                // 设置事件监听器（在设置 src 之前）
+                setupVideoEventListeners(videoUrl);
+                
+                // 直接设置视频源
+                videoPlayer.src = videoUrl;
+                
+                // 等待视频元数据加载完成
+                await new Promise((resolve) => {
+                    if (videoPlayer.readyState >= 1) {
+                        console.log('视频元数据已加载（从 blob）');
+                        resolve();
+                    } else {
+                        videoPlayer.addEventListener('loadedmetadata', function onLoadedMetadataOnce() {
+                            videoPlayer.removeEventListener('loadedmetadata', onLoadedMetadataOnce);
+                            console.log('视频元数据加载完成（从 blob）');
+                            resolve();
+                        });
+                    }
+                });
+                return;
+            }
+            
+            // 初始化 IndexedDB
+            await initIndexedDB();
+            
+            // 先检查是否有本地缓存（优先级最高）
+            const cachedVideo = await getCachedVideo(videoUrl);
+            
+            if (cachedVideo) {
+                console.log('使用本地缓存视频:', videoUrl);
+                // 如果缓存存在，清除失败记录
+                await removeFailedFile(videoUrl);
+                
+                // 确保 cachedVideo.blob 是真正的 Blob 对象
+                let videoBlob = cachedVideo.blob;
+                
+                // 检查 videoBlob 是否存在
+                if (!videoBlob) {
+                    console.error('[Cache] 缓存中没有 blob 数据');
+                } else if (!(videoBlob instanceof Blob)) {
+                    console.log('[Cache] 缓存的 blob 不是真正的 Blob 对象，尝试转换');
+                    try {
+                        // 如果是 ArrayBuffer 或包含 data 属性的对象，尝试转换
+                        if (videoBlob.data && videoBlob.type) {
+                            // 可能是存储时被序列化的 Blob
+                            if (videoBlob.data instanceof ArrayBuffer) {
+                                videoBlob = new Blob([videoBlob.data], { type: videoBlob.type });
+                            } else if (typeof videoBlob.data === 'string') {
+                                // 如果是 base64 字符串
+                                const byteString = atob(videoBlob.data.split(',')[1]);
+                                const mimeString = videoBlob.data.split(',')[0].split(':')[1].split(';')[0];
+                                const ab = new ArrayBuffer(byteString.length);
+                                const ia = new Uint8Array(ab);
+                                for (let i = 0; i < byteString.length; i++) {
+                                    ia[i] = byteString.charCodeAt(i);
+                                }
+                                videoBlob = new Blob([ab], { type: mimeString });
+                            } else {
+                                console.error('[Cache] 无法转换缓存的 blob 对象');
+                                videoBlob = null;
+                            }
+                        } else {
+                            console.error('[Cache] 缓存的 blob 对象格式不正确');
+                            videoBlob = null;
+                        }
+                    } catch (e) {
+                        console.error('[Cache] 转换缓存 blob 失败:', e);
+                        videoBlob = null;
+                    }
+                }
+                
+                if (!videoBlob) {
+                    console.log('[Cache] 无法使用缓存，尝试从网络加载');
+                } else {
+                    // 使用本地缓存的视频
+                    const blobUrl = URL.createObjectURL(videoBlob);
+                    
+                    // 设置事件监听器（在设置 src 之前）
+                    setupVideoEventListeners(videoUrl);
+                    
+                    // 设置视频源
+                    videoPlayer.src = blobUrl;
+                    
+                    // 等待视频元数据加载完成
+                    await new Promise((resolve) => {
+                        if (videoPlayer.readyState >= 1) {
+                            // 元数据已经加载完成
+                            console.log('视频元数据已加载（从缓存）');
+                            resolve();
+                        } else {
+                            // 等待 loadedmetadata 事件
+                            videoPlayer.addEventListener('loadedmetadata', function onLoadedMetadataOnce() {
+                                videoPlayer.removeEventListener('loadedmetadata', onLoadedMetadataOnce);
+                                console.log('视频元数据加载完成（从缓存）');
+                                resolve();
+                            });
+                        }
+                    });
+                    return;
+                }
+            }
+            
+            // 检查文件是否加载失败过
+            const hasFailed = await isFileFailed(videoUrl);
+            if (hasFailed) {
+                console.log('视频之前加载失败:', videoUrl);
+                alert('该视频已被清理，无法播放');
+                return;
+            }
+            
+            console.log('开始下载并缓存视频:', videoUrl);
+            
+            // 设置事件监听器（在下载之前）
+            setupVideoEventListeners(videoUrl);
+            
+            // 边播放边缓存
+            await downloadAndCacheVideo(videoUrl, videoPlayer);
+        }
+        
+        // 边播放边下载并缓存视频
+        async function downloadAndCacheVideo(url, videoElement) {
+            try {
+                // 在下载前检查视频大小和时长
+                const shouldContinue = await checkVideoSizeAndDuration(url);
+                if (!shouldContinue) {
+                    console.log('用户取消缓存视频');
+                    // 关闭视频预览页面
+                    if (window.close) {
+                        window.close();
+                    }
+                    return;
+                }
+                
+                // 先直接用URL播放，同时显示加载进度
+                videoElement.src = url;
+                
+                // 创建 XMLHttpRequest 来跟踪下载进度
+                const xhr = new XMLHttpRequest();
+                
+                xhr.open('GET', url, true);
+                xhr.responseType = 'blob';
+                
+                // 跟踪下载进度
+                xhr.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        const progress = event.loaded / event.total;
+                        showCacheProgress(percent, `正在缓存视频... ${percent}%`);
+                        // 更新任务栏下载图标和进度条
+                        if (window.electronAPI?.tray?.setDownloadIcon) {
+                            window.electronAPI.tray.setDownloadIcon(progress);
+                        }
+                    }
+                };
+                
+                xhr.onload = async () => {
+                    if (xhr.status === 200) {
+                        const blob = xhr.response;
+                        
+                        // 显示完成状态
+                        showCacheProgress(100, '视频缓存完成！');
+                        // 更新任务栏下载图标为完成状态
+                        if (window.electronAPI?.tray?.setDownloadIcon) {
+                            window.electronAPI.tray.setDownloadIcon(1);
+                        }
+                        
+                        // 保存到 IndexedDB
+                        await cacheVideo(url, blob);
+                        
+                        // 3秒后隐藏进度条并清除下载状态
+                        setTimeout(() => {
+                            hideCacheProgress();
+                            if (window.electronAPI?.tray?.clearDownload) {
+                                window.electronAPI.tray.clearDownload();
+                            }
+                        }, 3000);
+                    } else {
+                        console.error('视频下载失败:', xhr.status);
+                        // 下载失败，隐藏缓存进度
+                        hideCacheProgress();
+                        // 清除下载状态
+                        if (window.electronAPI?.tray?.clearDownload) {
+                            window.electronAPI.tray.clearDownload();
+                        }
+                    }
+                };
+                
+                xhr.onerror = () => {
+                    console.error('视频下载失败');
+                    // 下载失败，隐藏缓存进度
+                    hideCacheProgress();
+                    // 清除下载状态
+                    if (window.electronAPI?.tray?.clearDownload) {
+                        window.electronAPI.tray.clearDownload();
+                    }
+                };
+                
+                // 开始下载
+                xhr.send();
+                
+            } catch (error) {
+                console.error('缓存视频失败:', error);
+                // 失败时隐藏缓存进度
+                hideCacheProgress();
+                // 清除下载状态
+                if (window.electronAPI?.tray?.clearDownload) {
+                    window.electronAPI.tray.clearDownload();
+                }
+            }
+        }
+        
+        // 播放/暂停
+        function togglePlayPause() {
+            if (isPlaying) {
+                videoPlayer.pause();
+            } else {
+                videoPlayer.play().catch(err => {
+                    console.error('播放失败:', err);
+                });
+            }
+        }
+        
+        // 更新播放/暂停图标
+        function updatePlayPauseIcon(isPlaying) {
+            if (isPlaying) {
+                playPauseBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                `;
+                playPauseControl.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                `;
+            } else {
+                playPauseBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                `;
+                playPauseControl.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                `;
+            }
+        }
+        
+        // 切换静音
+        function toggleMute() {
+            videoPlayer.muted = !videoPlayer.muted;
+            if (videoPlayer.muted) {
+                volumeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <line x1="23" y1="9" x2="17" y2="15"></line>
+                        <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>
+                `;
+            } else {
+                volumeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                    </svg>
+                `;
+            }
+        }
+        
+        function toggleVolumeSlider() {
+            const volumeSliderWrapper = document.getElementById('volumeSliderWrapper');
+            const isVisible = volumeSliderWrapper.classList.contains('visible');
+            
+            if (isVisible) {
+                volumeSliderWrapper.classList.remove('visible');
+            } else {
+                volumeSliderWrapper.classList.add('visible');
+                
+                const handleClickOutside = (e) => {
+                    const volumeContainer = document.querySelector('.volume-container');
+                    if (!volumeContainer.contains(e.target)) {
+                        volumeSliderWrapper.classList.remove('visible');
+                        document.removeEventListener('click', handleClickOutside);
+                    }
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('click', handleClickOutside);
+                }, 100);
+            }
+        }
+        
+        // 调整音量
+        function adjustVolume(e) {
+            const rect = volumeSlider.getBoundingClientRect();
+            // 点击上方 = 高音量，点击下方 = 低音量
+            const percent = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+            videoPlayer.volume = percent;
+            volumeBar.style.height = `${percent * 100}%`;
+            volumeBar.style.width = '100%';
+            // 音量条从底部往上增长（高音量时填满整个滑块）
+            volumeBar.style.bottom = '0';
+            volumeBar.style.top = 'auto';
+            
+            // 更新圆形手柄位置 - 音量高时在上方，音量低时在下方
+            const volumeHandle = document.getElementById('volumeHandle');
+            if (volumeHandle) {
+                const handlePosition = (1 - percent) * (rect.height - 4);
+                volumeHandle.style.top = `${handlePosition - 8}px`;
+            }
+        }
+        
+        // 音量手柄拖拽
+        let isDraggingVolume = false;
+        
+        const volumeHandle = document.getElementById('volumeHandle');
+        if (volumeHandle) {
+            volumeHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isDraggingVolume = true;
+                document.addEventListener('mousemove', onVolumeDrag);
+                document.addEventListener('mouseup', onVolumeDragEnd);
+            });
+        }
+        
+        function onVolumeDrag(e) {
+            if (!isDraggingVolume) return;
+            
+            e.stopPropagation();
+            const rect = volumeSlider.getBoundingClientRect();
+            let percent = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+            videoPlayer.volume = percent;
+            volumeBar.style.height = `${percent * 100}%`;
+            volumeBar.style.bottom = '0';
+            volumeBar.style.top = 'auto';
+            
+            if (volumeHandle) {
+                const handlePosition = (1 - percent) * (rect.height - 4);
+                volumeHandle.style.top = `${handlePosition - 8}px`;
+            }
+        }
+        
+        function onVolumeDragEnd() {
+            isDraggingVolume = false;
+            document.removeEventListener('mousemove', onVolumeDrag);
+            document.removeEventListener('mouseup', onVolumeDragEnd);
+        }
+        
+        // 下载视频
+        async function downloadVideo() {
+            let params = getUrlParams();
+            let videoUrl = params.url;
+            let videoName = params.name || '视频';
+            // 移除uploads/前缀
+            if (videoName.startsWith('uploads/')) {
+                videoName = videoName.substring('uploads/'.length);
+            }
+            
+            try {
+                await initIndexedDB();
+                
+                const cachedVideo = await getCachedVideo(videoUrl);
+                
+                if (cachedVideo) {
+                    console.log('从本地缓存下载视频:', videoUrl);
+                    await saveBlobToFile(cachedVideo.blob, videoName);
+                } else {
+                    console.log('缓存中不存在，从网络下载:', videoUrl);
+                    showDownloadProgress();
+                    const blob = await downloadWithProgress(videoUrl);
+                    hideDownloadProgress();
+                    await saveBlobToFile(blob, videoName);
+                }
+            } catch (error) {
+                hideDownloadProgress();
+                console.error('下载视频失败:', error);
+                alert('下载视频失败: ' + error.message);
+            }
+        }
+        
+        // 显示下载进度条
+        function showDownloadProgress() {
+            videoContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+                    <h3 style="margin-bottom: 20px; color: #fff;">正在下载...</h3>
+                    <div style="width: 80%; max-width: 400px;">
+                        <div class="layui-progress layui-progress-big" lay-showPercent="yes">
+                            <div class="layui-progress-bar layui-bg-blue" id="downloadProgressBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div id="downloadStatus" style="margin-top: 10px; color: #fff; font-size: 14px;">0%</div>
+                </div>
+            `;
+            layui.use('element', function(){
+                var element = layui.element;
+                element.render('progress');
+            });
+        }
+        
+        // 隐藏下载进度条
+        function hideDownloadProgress() {
+            const progressBar = document.getElementById('downloadProgressBar');
+            if (progressBar) {
+                progressBar.style.width = '100%';
+            }
+        }
+        
+        // 带进度的下载
+        function downloadWithProgress(url) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', url, true);
+                xhr.responseType = 'blob';
+                
+                xhr.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        const progressBar = document.getElementById('downloadProgressBar');
+                        const status = document.getElementById('downloadStatus');
+                        if (progressBar) {
+                            progressBar.style.width = percent + '%';
+                            layui.use('element', function(){
+                                var element = layui.element;
+                                element.render('progress');
+                            });
+                        }
+                        if (status) {
+                            status.textContent = `${percent}%`;
+                        }
+                    }
+                };
+                
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        resolve(xhr.response);
+                    } else {
+                        reject(new Error(`下载失败，状态码: ${xhr.status}`));
+                    }
+                };
+                
+                xhr.onerror = () => {
+                    reject(new Error('下载失败，网络错误'));
+                };
+                
+                xhr.send();
+            });
+        }
+        
+        // 保存Blob到文件
+        async function saveBlobToFile(blob, filename) {
+            if (window.electronAPI && window.electronAPI.fs && window.electronAPI.fs.saveFile) {
+                const buffer = await blob.arrayBuffer();
+                const result = await window.electronAPI.fs.saveFile(buffer, filename);
+                if (result.success) {
+                    alert('文件已保存到: ' + result.path);
+                } else {
+                    alert('保存失败: ' + result.message);
+                }
+            } else {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = URL.createObjectURL(blob);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            }
+        }
+        
+        // 切换全屏
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                videoWrapper.requestFullscreen().catch(err => {
+                    console.error(`全屏错误: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        // 全屏事件处理（进入和退出）
+        document.addEventListener('fullscreenchange', () => {
+            setTimeout(() => {
+                if (!document.fullscreenElement) {
+                    // 退出全屏后刷新布局
+                    videoPlayer.style.width = '';
+                    videoPlayer.style.height = '';
+                    videoWrapper.style.width = '';
+                    videoWrapper.style.height = '';
+                }
+                
+                // 更新频谱canvas尺寸
+                updateSpectrumSize();
+                
+                window.dispatchEvent(new Event('resize'));
+            }, 100);
+        });
+        
+        // 更新频谱canvas尺寸
+        function updateSpectrumSize() {
+            if (!spectrumCanvas || !spectrumContainer) return;
+            
+            const rect = spectrumContainer.getBoundingClientRect();
+            spectrumCanvas.width = rect.width * window.devicePixelRatio;
+            spectrumCanvas.height = rect.height * window.devicePixelRatio;
+            spectrumCanvas.style.width = rect.width + 'px';
+            spectrumCanvas.style.height = rect.height + 'px';
+        }
+        
+        // 键盘事件处理（Esc退出全屏）
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        });
+        
+        // 显示视频详细信息
+        async function showVideoInfo() {
+            let params = getUrlParams();
+            let videoUrl = params.url;
+            
+            // 获取视频信息
+            const info = await getVideoInfo(videoUrl);
+            
+            // 更新弹窗内容
+            document.getElementById('infoFormat').textContent = info.format || '未知';
+            document.getElementById('infoSize').textContent = info.size || '未知';
+            document.getElementById('infoVideoCodec').textContent = info.videoCodec || '未知';
+            document.getElementById('infoAudioFormat').textContent = info.audioFormat || '未知';
+            document.getElementById('infoAudioSize').textContent = info.audioSize || '未知';
+            document.getElementById('infoVideoBitrate').textContent = info.videoBitrate || '未知';
+            document.getElementById('infoAudioBitrate').textContent = info.audioBitrate || '未知';
+            document.getElementById('infoFPS').textContent = info.fps || '未知';
+            
+            // 更新视频缩略图
+            await updateVideoThumbnail();
+            
+            // 显示弹窗
+            document.getElementById('videoInfoModal').style.display = 'flex';
+        }
+        
+        // 更新视频缩略图
+        async function updateVideoThumbnail() {
+            const thumbnailImg = document.getElementById('videoThumbnail');
+            
+            if (videoPlayer && videoPlayer.duration > 0) {
+                try {
+                    // 创建canvas来截取视频帧
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 设置canvas尺寸为缩略图尺寸
+                    canvas.width = 120;
+                    canvas.height = 80;
+                    
+                    // 截取当前播放位置的帧作为缩略图
+                    ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+                    
+                    // 将canvas转换为base64图片
+                    const thumbnailDataUrl = canvas.toDataURL('image/png');
+                    
+                    // 更新缩略图显示
+                    thumbnailImg.src = thumbnailDataUrl;
+                    
+                    console.log('视频缩略图已更新');
+                } catch (error) {
+                    console.error('生成视频缩略图失败:', error);
+                    // 如果失败，使用默认图片
+                    thumbnailImg.src = '4204bf80-b41f-46fb-8d4e-8ef4f9efe583.png';
+                }
+            } else {
+                // 视频未加载时使用默认图片
+                thumbnailImg.src = '4204bf80-b41f-46fb-8d4e-8ef4f9efe583.png';
+            }
+        }
+        
+        // 获取视频详细信息
+        async function getVideoInfo(url) {
+            const info = {
+                format: '未知',
+                size: '未知',
+                videoCodec: '未知',
+                audioFormat: '未知',
+                audioSize: '未知',
+                videoBitrate: '未知',
+                audioBitrate: '未知',
+                fps: '未知'
+            };
+            
+            // 从URL获取格式
+            const ext = url.split('.').pop().toLowerCase();
+            const formats = {
+                'mp4': 'MP4 (MPEG-4)',
+                'webm': 'WebM',
+                'ogg': 'OGG',
+                'mov': 'MOV (QuickTime)',
+                'avi': 'AVI',
+                'mkv': 'MKV (Matroska)'
+            };
+            info.format = formats[ext] || ext.toUpperCase();
+            
+            // 获取文件大小
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                const contentLength = response.headers.get('Content-Length');
+                if (contentLength) {
+                    const bytes = parseInt(contentLength);
+                    if (bytes < 1024) {
+                        info.size = bytes + ' B';
+                    } else if (bytes < 1024 * 1024) {
+                        info.size = (bytes / 1024).toFixed(2) + ' KB';
+                    } else {
+                        info.size = (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+                    }
+                }
+            } catch (e) {
+                console.error('获取文件大小失败:', e);
+            }
+            
+            // 如果视频已加载，获取更多信息
+            if (videoPlayer.duration > 0) {
+                // 计算视频码率（估算）
+                if (videoPlayer.duration > 0 && videoPlayer.buffered.length > 0 && videoPlayer.videoWidth > 0 && videoPlayer.videoHeight > 0) {
+                    const bufferedBytes = videoPlayer.buffered.end(videoPlayer.buffered.length - 1) * videoPlayer.videoWidth * videoPlayer.videoHeight * 4;
+                    const bitrate = (bufferedBytes * 8 / videoPlayer.duration / 1024).toFixed(0);
+                    info.videoBitrate = bitrate + ' kbps';
+                } else if (videoPlayer.videoWidth > 0 && videoPlayer.videoHeight > 0) {
+                    // 简化估算：基于分辨率和帧率估算码率
+                    const pixels = videoPlayer.videoWidth * videoPlayer.videoHeight;
+                    const estimatedBitrate = (pixels * 30 * 0.1) / 1024; // 约30fps，每像素0.1bit
+                    info.videoBitrate = estimatedBitrate.toFixed(0) + ' kbps';
+                }
+                
+                // 计算音频大小和码率（估算）
+                // 假设音频比特率为128kbps（常见值）
+                const audioBitrate = 128000;
+                const audioSizeInBytes = (audioBitrate * videoPlayer.duration) / 8;
+                info.audioBitrate = '128 kbps';
+                
+                if (audioSizeInBytes < 1024) {
+                    info.audioSize = audioSizeInBytes.toFixed(0) + ' B';
+                } else if (audioSizeInBytes < 1024 * 1024) {
+                    info.audioSize = (audioSizeInBytes / 1024).toFixed(2) + ' KB';
+                } else {
+                    info.audioSize = (audioSizeInBytes / (1024 * 1024)).toFixed(2) + ' MB';
+                }
+                
+                // 获取FPS
+                if (videoPlayer.getVideoPlaybackQuality) {
+                    const quality = videoPlayer.getVideoPlaybackQuality();
+                    info.fps = quality.framesPerSecond ? quality.framesPerSecond.toFixed(1) + ' FPS' : '未知';
+                } else if (videoPlayer.videoTracks && videoPlayer.videoTracks[0]) {
+                    // 尝试从视频轨道获取帧率
+                    const track = videoPlayer.videoTracks[0];
+                    if (track.getSettings) {
+                        const settings = track.getSettings();
+                        info.fps = settings.frameRate ? settings.frameRate.toFixed(1) + ' FPS' : '未知';
+                    } else {
+                        info.fps = '约30 FPS';
+                    }
+                } else {
+                    info.fps = '约30 FPS';
+                }
+            }
+            
+            // 尝试获取更多元数据
+            try {
+                const mediaSource = videoPlayer.src;
+                if (mediaSource) {
+                    // 尝试从视频元素获取信息
+                    info.videoCodec = videoPlayer.videoTracks && videoPlayer.videoTracks[0] 
+                        ? videoPlayer.videoTracks[0].label || 'H.264/AVC'
+                        : 'H.264/AVC';
+                    info.audioFormat = videoPlayer.audioTracks && videoPlayer.audioTracks[0]
+                        ? videoPlayer.audioTracks[0].label || 'AAC'
+                        : 'AAC';
+                }
+            } catch (e) {
+                console.error('获取视频元数据失败:', e);
+            }
+            
+            return info;
+        }
+        
+        // 关闭视频信息弹窗
+        function closeVideoInfoModal() {
+            document.getElementById('videoInfoModal').style.display = 'none';
+        }
+        
+        // 更新进度条
+        function updateProgress() {
+            if (isNaN(videoPlayer.duration) || videoPlayer.duration === 0) {
+                return;
+            }
+            const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+            progressBar.style.width = `${percent}%`;
+            progressHandle.style.left = `${percent}%`;
+        }
+        
+        // 更新时间显示
+        function updateTimeDisplay() {
+            const currentTime = formatTime(videoPlayer.currentTime);
+            const duration = formatTime(videoPlayer.duration);
+            timeDisplay.textContent = `${currentTime} / ${duration}`;
+        }
+        
+        // 格式化时间
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '00:00';
+            const minutes = Math.floor(seconds / 60);
+            seconds = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // 点击进度条
+        progressContainer.addEventListener('click', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            videoPlayer.currentTime = percent * videoPlayer.duration;
+        });
+        
+        // 进度条手柄拖拽
+        let isDraggingProgress = false;
+        
+        progressHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDraggingProgress = true;
+            document.addEventListener('mousemove', onProgressDrag);
+            document.addEventListener('mouseup', onProgressDragEnd);
+        });
+        
+        function onProgressDrag(e) {
+            if (!isDraggingProgress) return;
+            
+            const rect = progressContainer.getBoundingClientRect();
+            let percent = (e.clientX - rect.left) / rect.width;
+            percent = Math.max(0, Math.min(1, percent));
+            videoPlayer.currentTime = percent * videoPlayer.duration;
+        }
+        
+        function onProgressDragEnd() {
+            isDraggingProgress = false;
+            document.removeEventListener('mousemove', onProgressDrag);
+            document.removeEventListener('mouseup', onProgressDragEnd);
+        }
+        
+        // 显示右键菜单
+        function showContextMenu(e) {
+            e.preventDefault();
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${e.clientX}px`;
+            contextMenu.style.top = `${e.clientY}px`;
+        }
+        
+        // 隐藏右键菜单
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+        }
+        
+        // 切换循环播放
+        function toggleLoop() {
+            isLoop = !isLoop;
+            videoPlayer.loop = isLoop;
+            
+            if (isLoop) {
+                loopBtn.style.color = '#3498db';
+                loopBtn.style.background = 'rgba(52, 152, 219, 0.2)';
+            } else {
+                loopBtn.style.color = '#ffffff';
+                loopBtn.style.background = 'none';
+            }
+        }
+        
+        // 开始计算FPS
+        function startFpsCalculation() {
+            if (fpsIntervalId) {
+                cancelAnimationFrame(fpsIntervalId);
+            }
+            
+            fpsFrameCount = 0;
+            fpsLastTime = Date.now();
+            
+            const calculateFps = () => {
+                fpsFrameCount++;
+                const currentTime = Date.now();
+                
+                if (currentTime - fpsLastTime >= 1000) {
+                    const fps = fpsFrameCount;
+                    fpsFrameCount = 0;
+                    fpsLastTime = currentTime;
+                    
+                    // 更新FPS显示
+                    updateFpsDisplay(fps);
+                }
+                
+                fpsIntervalId = requestAnimationFrame(calculateFps);
+            };
+            
+            calculateFps();
+        }
+        
+        // 停止FPS计算
+        function stopFpsCalculation() {
+            if (fpsIntervalId) {
+                cancelAnimationFrame(fpsIntervalId);
+                fpsIntervalId = null;
+            }
+        }
+        
+        // 更新FPS显示
+        function updateFpsDisplay(fps) {
+            const fpsEl = document.getElementById('infoFPS');
+            if (fpsEl) {
+                fpsEl.textContent = fps + ' FPS';
+            }
+        }
+        
+        // 设置倍速
+        function setPlaybackSpeed(speed) {
+            videoPlayer.playbackRate = speed;
+            const speedText = document.getElementById('speedText');
+            const speedOptions = document.querySelectorAll('.speed-option');
+            
+            speedText.textContent = speed + 'x';
+            
+            speedOptions.forEach(option => {
+                option.classList.remove('active');
+                if (parseFloat(option.dataset.speed) === speed) {
+                    option.classList.add('active');
+                }
+            });
+            
+            hideSpeedMenu();
+        }
+        
+        // 显示倍速菜单
+        function showSpeedMenu() {
+            const speedMenu = document.getElementById('speedMenu');
+            speedMenu.classList.add('visible');
+        }
+        
+        // 隐藏倍速菜单
+        function hideSpeedMenu() {
+            const speedMenu = document.getElementById('speedMenu');
+            speedMenu.classList.remove('visible');
+        }
+        
+        // 切换画中画模式
+        async function togglePictureInPicture() {
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else {
+                    await videoPlayer.requestPictureInPicture();
+                }
+            } catch (error) {
+                console.error('画中画模式切换失败:', error);
+                alert('您的浏览器不支持画中画功能');
+            }
+        }
+        
+        // 监听画中画状态变化
+        videoPlayer.addEventListener('enterpictureinpicture', () => {
+            const settingsPip = document.getElementById('settingsPip');
+            settingsPip.classList.add('active');
+        });
+        
+        videoPlayer.addEventListener('leavepictureinpicture', () => {
+            const settingsPip = document.getElementById('settingsPip');
+            settingsPip.classList.remove('active');
+        });
+        
+        // 镜像画面功能
+        let isMirrored = false;
+        
+        function toggleMirror() {
+            isMirrored = !isMirrored;
+            const settingsMirror = document.getElementById('settingsMirror');
+            
+            if (isMirrored) {
+                videoPlayer.style.transform = 'scaleX(-1)';
+                settingsMirror.classList.add('active');
+            } else {
+                videoPlayer.style.transform = '';
+                settingsMirror.classList.remove('active');
+            }
+        }
+        
+        // 显示设置菜单
+        function showSettingsMenu() {
+            const settingsMenu = document.getElementById('settingsMenu');
+            settingsMenu.classList.add('visible');
+        }
+        
+        // 隐藏设置菜单
+        function hideSettingsMenu() {
+            const settingsMenu = document.getElementById('settingsMenu');
+            settingsMenu.classList.remove('visible');
+        }
+        
+        // 绑定事件
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        playPauseControl.addEventListener('click', togglePlayPause);
+        volumeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleVolumeSlider();
+        });
+        volumeBtn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            toggleMute();
+        });
+        downloadBtn.addEventListener('click', downloadVideo);
+        settingsPip.addEventListener('click', togglePictureInPicture);
+        settingsMirror.addEventListener('click', toggleMirror);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        loopBtn.addEventListener('click', toggleLoop);
+        volumeSlider.addEventListener('click', (e) => {
+            e.stopPropagation();
+            adjustVolume(e);
+        });
+        
+        // 设置按钮点击事件 - 切换菜单显示
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsMenu = document.getElementById('settingsMenu');
+        
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (settingsMenu.classList.contains('visible')) {
+                hideSettingsMenu();
+            } else {
+                showSettingsMenu();
+            }
+        });
+        
+        // 倍速按钮点击事件 - 切换菜单显示
+        const speedBtn = document.getElementById('speedBtn');
+        const speedMenu = document.getElementById('speedMenu');
+        
+        speedBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (speedMenu.classList.contains('visible')) {
+                hideSpeedMenu();
+            } else {
+                showSpeedMenu();
+            }
+        });
+        
+        // 点击页面其他地方关闭菜单
+        document.addEventListener('click', (e) => {
+            if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
+                hideSpeedMenu();
+            }
+            if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
+                hideSettingsMenu();
+            }
+        });
+        
+        // 倍速选项点击事件
+        const speedOptions = document.querySelectorAll('.speed-option');
+        speedOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const speed = parseFloat(option.dataset.speed);
+                setPlaybackSpeed(speed);
+            });
+        });
+        
+        videoWrapper.addEventListener('contextmenu', showContextMenu);
+        document.addEventListener('click', hideContextMenu);
+        
+        // 菜单点击事件
+        contextMenu.addEventListener('click', (e) => {
+            let action = e.target.dataset.action;
+            switch (action) {
+                case 'playPause':
+                    togglePlayPause();
+                    break;
+                case 'mute':
+                    toggleMute();
+                    break;
+                case 'download':
+                    downloadVideo();
+                    break;
+                case 'fullscreen':
+                    toggleFullscreen();
+                    break;
+                case 'videoInfo':
+                    showVideoInfo();
+                    break;
+            }
+        });
+        
+        // 窗口关闭时恢复任务栏图标和按钮状态
+        window.addEventListener('beforeunload', () => {
+            setVideoPlaybackStatus(false);
+            
+            // 暂停视频
+            videoPlayer.pause();
+            
+            // 恢复播放按钮为默认的播放图标
+            playPauseBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            `;
+            playPauseControl.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            `;
+            
+            // 恢复音量按钮为默认图标（非静音状态）
+            volumeBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+            `;
+            
+            // 隐藏音量滑块
+            const volumeSliderWrapper = document.getElementById('volumeSliderWrapper');
+            if (volumeSliderWrapper) {
+                volumeSliderWrapper.classList.remove('visible');
+            }
+        });
+        
+        // 弹窗关闭事件
+        document.getElementById('closeModal').addEventListener('click', closeVideoInfoModal);
+        document.getElementById('okBtn').addEventListener('click', closeVideoInfoModal);
+        
+        // 点击弹窗外部关闭
+        document.getElementById('videoInfoModal').addEventListener('click', (e) => {
+            if (e.target.id === 'videoInfoModal') {
+                closeVideoInfoModal();
+            }
+        });
+        
+        // 初始化
+        initPlayer();
+    </script>
+</body>
+</html>

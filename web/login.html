@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Modern Chat</title>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <h1>Modern Chat</h1>
+                <p>现代化即时通讯</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" name="email" placeholder="请输入邮箱" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">登录</button>
+            </form>
+            
+            <div class="link">
+                <a href="#" onclick="showRegisterModal()">还没有账号？立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 协议弹窗 -->
+    <div id="agreementModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: #fff; border-radius: 8px; width: 85%; max-width: 800px; max-height: 85vh; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 1px solid #e8e8e8;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid #f0f0f0; background: #fafafa;">
+                <h3 style="margin: 0; color: #333; font-size: 16px; font-weight: 500;">用户协议与隐私政策</h3>
+                <button type="button" onclick="closeAgreementModal()" style="background: transparent; border: none; color: #999; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; display: none;" id="agreementCloseBtn">关闭</button>
+            </div>
+            <div style="height: calc(85vh - 120px); overflow-y: auto; padding: 24px; background: #fff;">
+                <div id="agreementContent"></div>
+            </div>
+            <div style="padding: 16px 24px; border-top: 1px solid #f0f0f0; background: #fafafa; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="agreeCheckbox" disabled>
+                    <label for="agreeCheckbox" id="agreeLabel" style="color: #666; font-size: 14px;">我已阅读并同意以上协议</label>
+                </div>
+                <div>
+                    <button type="button" id="agreeBtn" disabled style="background: #e0e0e0; color: #999; border: none; padding: 8px 20px; border-radius: 4px; font-size: 14px; opacity: 0.6; cursor: not-allowed;">
+                        同意（<span id="agreeCountdown">20</span>秒）
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 更新弹窗 -->
+    <div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9998; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 12px; width: 90%; max-width: 450px; overflow: hidden;">
+            <div style="padding: 24px; text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="12 22 12 14 14 14"></polyline>
+                        <path d="M20.49 15a1.5 1.5 0 0 0-1.12-5.94L17 8h-2.89"></path>
+                    </svg>
+                </div>
+                <h3 style="margin: 0 0 10px; font-size: 20px; font-weight: 600; color: #333;">发现新版本</h3>
+                <p style="color: #666; margin-bottom: 8px;">当前版本: <span id="currentVersion">V0.0.3</span></p>
+                <p style="color: #666; margin-bottom: 16px;">最新版本: <span id="latestVersion">V0.0.3</span></p>
+                <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; text-align: left; max-height: 150px; overflow-y: auto; margin-bottom: 20px;">
+                    <p style="margin: 0; color: #555; font-size: 14px; white-space: pre-wrap;" id="updateMessage"></p>
+                </div>
+            </div>
+            <div id="downloadButtons" style="padding: 0 24px 24px; display: flex; gap: 12px;">
+                <button type="button" class="btn btn-secondary" onclick="ignoreUpdate()">忽略更新</button>
+                <button type="button" class="btn btn-primary" onclick="normalDownload()">普通下载</button>
+                <button type="button" class="btn btn-success" onclick="speedDownload()">极速下载</button>
+            </div>
+            <div id="downloadProgressContainer" style="display: none; padding: 0 24px 24px;">
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #666;">
+                        <span id="downloadProgressText">0%</span>
+                        <span id="downloadSpeed">速度: 0MiB/s</span>
+                    </div>
+                    <div style="height: 8px; background: #ddd; border-radius: 4px; overflow: hidden;">
+                        <div id="downloadProgressBar" style="height: 100%; background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%); width: 0%; transition: width 0.1s linear;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #999;">
+                        <span id="downloadSize">0MiB / 0MiB</span>
+                        <span id="downloadETA">剩余时间: --</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const OFFICIAL_SERVER = window.OFFICIAL_SERVER || 'https://chat.hyacine.com.cn/chat/api-pc.php';
+    
+    function showServerDialog() {
+        const savedServer = localStorage.getItem('custom_server') || '';
+        const serverType = document.getElementById('serverType');
+        const customGroup = document.getElementById('customServerGroup');
+        const customInput = document.getElementById('customServer');
+        
+        if (savedServer && savedServer !== OFFICIAL_SERVER) {
+            serverType.value = 'custom';
+            customGroup.style.display = 'block';
+            customInput.value = savedServer;
+        } else {
+            serverType.value = 'official';
+            customGroup.style.display = 'none';
+            customInput.value = '';
+        }
+        
+        document.getElementById('serverDialog').style.display = 'flex';
+    }
+    
+    function closeServerDialog() {
+        document.getElementById('serverDialog').style.display = 'none';
+    }
+    
+    function toggleServerInput() {
+        const serverType = document.getElementById('serverType').value;
+        const customGroup = document.getElementById('customServerGroup');
+        customGroup.style.display = serverType === 'custom' ? 'block' : 'none';
+    }
+    
+    async function confirmServer() {
+        const serverType = document.getElementById('serverType').value;
+        const customInput = document.getElementById('customServer');
+        let serverUrl;
+        
+        if (serverType === 'official') {
+            serverUrl = OFFICIAL_SERVER;
+        } else {
+            serverUrl = customInput.value.trim();
+            if (!serverUrl) {
+                alert('请输入服务器地址');
+                customInput.focus();
+                return;
+            }
+            if (!serverUrl.endsWith('api-pc.php')) {
+                alert('服务器地址必须包含 api-pc.php');
+                customInput.focus();
+                return;
+            }
+        }
+        
+        try {
+            const response = await fetch(serverUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resource: 'check_api' })
+            });
+            
+            if (!response.ok) {
+                throw new Error('网络错误');
+            }
+            
+            const result = await response.json();
+            
+            if (result.code === 200) {
+                localStorage.setItem('custom_server', serverUrl);
+                localStorage.setItem('server_type', serverType);
+                alert('设置成功！');
+                closeServerDialog();
+            } else {
+                alert('服务器连接失败，请检查地址是否正确');
+                if (serverType === 'custom') {
+                    customInput.focus();
+                }
+            }
+        } catch (error) {
+            alert('无法连接到服务器: ' + error.message);
+            if (serverType === 'custom') {
+                customInput.focus();
+            }
+        }
+    }
+    
+    function getCurrentServer() {
+        const savedServer = localStorage.getItem('custom_server');
+        return savedServer || OFFICIAL_SERVER;
+    }
+    </script>
+
+    <button type="button" class="btn btn-secondary" onclick="showServerDialog()" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+        切换服务器
+    </button>
+
+    <div id="serverDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 10px; width: 400px; max-width: 90%;">
+            <h3 style="margin-top: 0; color: #333;">切换服务器</h3>
+            <div class="form-group">
+                <label for="serverType">选择服务器</label>
+                <select id="serverType" onchange="toggleServerInput()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="official">官方</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div class="form-group" id="customServerGroup" style="display: none;">
+                <label for="customServer">请输入服务器地址</label>
+                <input type="url" id="customServer" placeholder="https://your-domain.com/chat/api-pc.php" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeServerDialog()" style="margin-right: 10px;">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmServer()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册弹窗 -->
+    <div id="registerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee;">
+                <h3 style="margin: 0; color: #333;">用户注册</h3>
+                <button type="button" onclick="closeRegisterModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #999;">&times;</button>
+            </div>
+            <div style="height: calc(90vh - 60px);">
+                <iframe id="registerFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function showRegisterModal() {
+        const serverUrl = getCurrentServer();
+        const baseUrl = serverUrl.replace('/api-pc.php', '');
+        const registerUrl = baseUrl + '/register.php';
+        
+        document.getElementById('registerFrame').src = registerUrl;
+        document.getElementById('registerModal').style.display = 'flex';
+        
+        document.addEventListener('message', handleRegisterMessage);
+    }
+    
+    function closeRegisterModal() {
+        document.getElementById('registerModal').style.display = 'none';
+        document.removeEventListener('message', handleRegisterMessage);
+    }
+    
+    function handleRegisterMessage(event) {
+        if (event.data && event.data.action === 'registerSuccess') {
+            alert('注册成功！请登录');
+            closeRegisterModal();
+        }
+    }
+    
+    function onRegisterFrameLoad() {
+        console.log('注册页面加载完成');
+    }
+    </script>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

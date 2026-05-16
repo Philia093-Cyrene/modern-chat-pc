@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - Modern Chat</title>
+    <link rel="stylesheet" href="js/css/layui.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+        
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .settings-section h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .form-textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        
+        .form-textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .theme-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .theme-option:hover {
+            background: #e8e8e8;
+        }
+        
+        .theme-option input {
+            cursor: pointer;
+        }
+        
+        .storage-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .storage-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .storage-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .storage-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .danger-zone {
+            border: 1px solid #ff4444;
+            background: #fff5f5;
+        }
+        
+        .danger-zone h2 {
+            color: #ff4444;
+            border-bottom-color: #ff4444;
+        }
+        
+        .btn-danger {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #ff2222;
+        }
+        
+
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .form-row .form-input {
+            flex: 1;
+        }
+        
+        .indexeddb-storage {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .storage-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .storage-label {
+            width: 80px;
+            font-size: 14px;
+        }
+        
+        .storage-bar-container {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .storage-bar {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .storage-bar-image {
+            background: linear-gradient(90deg, #2563eb, #1e40af);
+        }
+        
+        .storage-bar-file {
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+        }
+        
+        .storage-bar-video {
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+        }
+        
+        .storage-bar-audio {
+            background: linear-gradient(90deg, #43e97b, #38f9d7);
+        }
+        
+        .storage-size {
+            width: 80px;
+            text-align: right;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .cache-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .cache-toolbar .btn { margin: 0; }
+        .cache-filter {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            min-width: 140px;
+        }
+        .cache-cards-wrap {
+            max-height: 450px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            padding: 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            border: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .cache-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            display: flex;
+            gap: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        .cache-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+            transform: translateY(-3px) scale(1.01);
+            border-color: #e2e8f0;
+        }
+        .cache-card.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+        }
+        .cache-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+        .cache-card:hover .cache-card-icon {
+            transform: scale(1.1);
+        }
+        .cache-card-icon.messages {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1d4ed8;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .cache-card-icon.videos {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            color: #be185d;
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+        }
+        .cache-card-icon.images {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+        .cache-card-icon.audio {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #b45309;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+        .cache-card-icon.files {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #4f46e5;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+        .cache-card-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cache-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+        .cache-card-store {
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            align-self: flex-start;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .cache-card-store.messages {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        .cache-card-store.videos {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+        }
+        .cache-card-store.images {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+        .cache-card-store.audio {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .cache-card-store.files {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+        .cache-card-size {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .cache-card-checkbox {
+            align-self: flex-start;
+            margin-top: 4px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+            border-radius: 6px;
+        }
+        .cache-label { font-size: 13px; color: #555; margin-bottom: 8px; display: block; }
+        
+        .cache-filter {
+            appearance: none;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 36px 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            min-width: 140px;
+            transition: all 0.3s ease;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 18px;
+        }
+        .cache-filter:hover {
+            border-color: #94a3b8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .cache-filter:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .cache-filter option {
+            background: white;
+            color: #334155;
+            padding: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>设置</h1>
+    </div>
+    
+    <div class="container">
+        <div class="settings-section">
+            <h2>主题设置</h2>
+            
+            <div class="form-group">
+                <label class="form-label">主题颜色</label>
+                <div class="theme-options">
+                    <label class="theme-option">
+                        <input type="radio" name="theme-color" value="blue" checked>
+                        <span>蓝色</span>
+                    </label>
+                    <label class="theme-option">
+                        <input type="radio" name="theme-color" value="purple">
+                        <span>紫色</span>
+                    </label>
+                    <label class="theme-option">
+                        <input type="radio" name="theme-color" value="green">
+                        <span>绿色</span>
+                    </label>
+                    <label class="theme-option">
+                        <input type="radio" name="theme-color" value="orange">
+                        <span>橙色</span>
+                    </label>
+                    <label class="theme-option">
+                        <input type="radio" name="theme-color" value="red">
+                        <span>红色</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">主题模式</label>
+                <div class="theme-options">
+                    <label class="theme-option">
+                        <input type="radio" name="theme-mode" value="light" checked>
+                        <span>浅色</span>
+                    </label>
+                    <label class="theme-option">
+                        <input type="radio" name="theme-mode" value="dark">
+                        <span>深色</span>
+                    </label>
+                    <label class="theme-option">
+                        <input type="radio" name="theme-mode" value="auto">
+                        <span>跟随系统</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">动画效果</label>
+                <label class="theme-option">
+                    <input type="checkbox" id="animation-enabled" checked>
+                    <span>启用动画效果</span>
+                </label>
+            </div>
+            
+            <button class="btn btn-primary" id="save-theme">保存主题设置</button>
+        </div>
+        
+        <div class="settings-section">
+            <h2>存储设置</h2>
+            
+            <div class="form-group">
+                <label class="form-label">缓存存储位置</label>
+                <div class="form-row">
+                    <input type="text" class="form-input" id="cache-path" placeholder="选择缓存存储位置">
+                    <button class="btn btn-secondary" id="select-cache-path">选择</button>
+                </div>
+                <span style="margin-left: 10px; font-size: 14px; color: #666666;">当前缓存大小: <span id="cache-size">0 MB</span></span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">下载存储位置</label>
+                <div class="form-row">
+                    <input type="text" class="form-input" id="download-path" placeholder="选择下载存储位置">
+                    <button class="btn btn-secondary" id="select-download-path">选择</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">清理IndexedDB缓存</label>
+                <button class="btn btn-secondary" id="clear-indexeddb">清理IndexedDB缓存</button>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <label class="form-label">本地缓存明细与管理</label>
+                <span class="cache-label">可查看 IndexedDB 中的消息与媒体缓存，删除或导出到下方「下载存储位置」。</span>
+                <div class="cache-toolbar">
+                    <select id="cache-filter-store" class="cache-filter">
+                        <option value="all">全部</option>
+                        <option value="messages">消息</option>
+                        <option value="files">图片/文件</option>
+                        <option value="videos">视频</option>
+                    </select>
+                    <input type="checkbox" id="cache-select-all" title="全选" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="cache-select-all" style="cursor: pointer; margin-right: 10px;">全选</label>
+                    <button type="button" class="btn btn-secondary" id="cache-refresh-list">刷新列表</button>
+                    <button type="button" class="btn btn-secondary" id="cache-delete-selected">删除选中</button>
+                    <button type="button" class="btn btn-secondary" id="cache-export-selected">导出选中</button>
+                    <button type="button" class="btn btn-secondary" id="cache-export-all">全部导出</button>
+                    <button type="button" class="btn btn-danger" id="cache-clear-store">清空当前分类</button>
+                </div>
+                <div class="cache-cards-wrap" id="cache-items-container"></div>
+            </div>
+            <button class="btn btn-primary" id="save-storage-settings">保存存储设置</button>
+        </div>
+        
+        <div class="settings-section">
+            <h2>个人资料</h2>
+            
+            <div class="form-group">
+                <label class="form-label">用户名</label>
+                <input type="text" class="form-input" id="username" placeholder="请输入用户名">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">邮箱</label>
+                <input type="email" class="form-input" id="email" placeholder="请输入邮箱" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">手机号</label>
+                <input type="tel" class="form-input" id="phone" placeholder="请输入手机号" readonly>
+            </div>
+            
+            <button class="btn btn-primary" id="save-profile">保存个人资料</button>
+        </div>
+        
+        <div class="settings-section">
+            <h2>隐私设置</h2>
+            
+            <div class="form-group">
+                <label class="theme-option">
+                    <input type="checkbox" id="show-online-status" checked>
+                    <span>显示在线状态</span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="theme-option">
+                    <input type="checkbox" id="show-read-receipt" checked>
+                    <span>显示已读回执</span>
+                </label>
+            </div>
+            
+            <button class="btn btn-primary" id="save-privacy">保存隐私设置</button>
+        </div>
+        
+        <div class="settings-section">
+            <h2>通知设置</h2>
+            
+            <div class="form-group">
+                <label class="theme-option">
+                    <input type="checkbox" id="enable-notifications" checked>
+                    <span>开启消息通知</span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="theme-option">
+                    <input type="checkbox" id="sound-notifications" checked>
+                    <span>声音提醒</span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="theme-option">
+                    <input type="checkbox" id="vibrate-notifications" checked>
+                    <span>振动提醒</span>
+                </label>
+            </div>
+            
+            <button class="btn btn-primary" id="save-notifications">保存通知设置</button>
+        </div>
+        
+        <div class="settings-section danger-zone">
+            <h2>危险区域</h2>
+            
+            <div class="form-group">
+                <p style="margin-bottom: 15px; color: #666;">删除账户将永久删除您的所有数据和聊天记录。此操作不可撤销！</p>
+                <button class="btn btn-danger" id="delete-account">删除账户</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'https://chat.hyacine.com.cn/chat/api-pc.php';
+        
+        // 等待 DOM 加载完成和 layui 加载
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('[setting] Setting page loaded');
+            
+            // 等待 layui 加载完成
+            await loadLayui();
+            
+            // 初始化设置页面
+            await initSettings();
+            setupCacheManagerUI();
+            await refreshCacheList();
+        });
+        
+        // 动态加载 layui
+        function loadLayui() {
+            return new Promise((resolve, reject) => {
+                // 检查 layui 是否已加载
+                if (window.layui) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'js/layui.js';
+                script.onload = () => {
+                    console.log('[setting] layui loaded');
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.warn('[setting] Failed to load layui, proceeding without it');
+                    resolve();
+                };
+                document.body.appendChild(script);
+            });
+        }
+        
+        // 初始化设置页面
+        async function initSettings() {
+            try {
+                // 加载各设置项
+                await Promise.allSettled([
+                    loadThemeSettings(),
+                    loadConfig(),
+                    loadProfileSettings(),
+                    loadPrivacySettings(),
+                    loadNotificationSettings()
+                ]);
+                
+                console.log('[setting] All settings loaded');
+                await calculateIndexedDBStorage();
+            } catch (error) {
+                console.error('[setting] Failed to initialize settings:', error);
+            }
+        }
+        
+        // 检查Electron API是否可用
+        function isElectronAPIAvailable() {
+            return typeof window !== 'undefined' && 
+                   typeof window.electronAPI !== 'undefined' && 
+                   window.electronAPI !== null;
+        }
+        
+        // 获取配置文件路径（保存在用户数据目录）
+        async function getConfigFilePath() {
+            // 使用用户数据目录，避免写入只读的 app.asar
+            const userDataPath = await window.electronAPI.getUserDataPath();
+            return await window.electronAPI.path.join(userDataPath, 'config.json');
+        }
+        
+        // 获取默认的存储路径
+        async function getDefaultStoragePaths() {
+            if (!isElectronAPIAvailable()) {
+                return {
+                    cachePath: 'C:\\Users\\用户名\\Documents\\Modern-chat\\cache',
+                    downloadPath: 'C:\\Users\\用户名\\Documents\\Modern-chat\\downloads'
+                };
+            }
+            
+            const documentsPath = await window.electronAPI.getDocumentsPath();
+            console.log('[setting] Documents path:', documentsPath);
+            
+            const basePath = await window.electronAPI.path.join(documentsPath, 'Modern-chat');
+            console.log('[setting] Base path:', basePath);
+            
+            const cachePath = await window.electronAPI.path.join(basePath, 'cache');
+            const downloadPath = await window.electronAPI.path.join(basePath, 'downloads');
+            
+            console.log('[setting] Default paths:', { cachePath, downloadPath });
+            
+            return { cachePath, downloadPath };
+        }
+        
+        // 读取配置（使用 localStorage）
+        async function loadConfig() {
+            try {
+                console.log('[setting] Loading config from localStorage...');
+                
+                // 获取默认路径
+                const defaultPaths = await getDefaultStoragePaths();
+                
+                // 从 localStorage 读取配置
+                const configStr = localStorage.getItem('modern-chat-config');
+                if (configStr) {
+                    const config = JSON.parse(configStr);
+                    console.log('[setting] Loaded config from localStorage:', config);
+                    
+                    // 更新页面显示
+                    document.getElementById('cache-path').value = config.cachePath || defaultPaths.cachePath;
+                    document.getElementById('download-path').value = config.downloadPath || defaultPaths.downloadPath;
+                    console.log('[setting] Config loaded successfully');
+                } else {
+                    console.log('[setting] No config in localStorage, using defaults');
+                    document.getElementById('cache-path').value = defaultPaths.cachePath;
+                    document.getElementById('download-path').value = defaultPaths.downloadPath;
+                }
+            } catch (error) {
+                console.error('[setting] Failed to load config:', error);
+                // 使用默认值
+                const defaultPaths = await getDefaultStoragePaths();
+                document.getElementById('cache-path').value = defaultPaths.cachePath;
+                document.getElementById('download-path').value = defaultPaths.downloadPath;
+            }
+        }
+        
+        // 保存配置（使用 localStorage）
+        async function saveConfig(config) {
+            try {
+                console.log('[setting] Saving config to localStorage:', config);
+                
+                // 保存到 localStorage
+                localStorage.setItem('modern-chat-config', JSON.stringify(config));
+                console.log('[setting] Config saved successfully to localStorage');
+                
+                // 同时也通过 IPC 保存到主进程，以便主进程也能读取
+                try {
+                    if (isElectronAPIAvailable()) {
+                        await window.electronAPI.saveConfig(config);
+                    }
+                } catch (e) {
+                    console.warn('[setting] Failed to save config to main process:', e);
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('[setting] Failed to save config:', error);
+                throw error;
+            }
+        }
+        
+        // 选择缓存目录
+        document.getElementById('select-cache-path').addEventListener('click', async () => {
+            try {
+                console.log('[setting] Selecting cache path...');
+                
+                if (!isElectronAPIAvailable()) {
+                    alert('Electron API不可用，无法选择目录');
+                    return;
+                }
+                
+                const selectedPath = await window.electronAPI.selectDirectory();
+                if (selectedPath) {
+                    console.log('[setting] Selected cache path:', selectedPath);
+                    document.getElementById('cache-path').value = selectedPath;
+                }
+            } catch (error) {
+                console.error('[setting] Failed to select cache path:', error);
+                alert('选择目录失败: ' + error.message);
+            }
+        });
+        
+        // 选择下载目录
+        document.getElementById('select-download-path').addEventListener('click', async () => {
+            try {
+                console.log('[setting] Selecting download path...');
+                
+                if (!isElectronAPIAvailable()) {
+                    alert('Electron API不可用，无法选择目录');
+                    return;
+                }
+                
+                const selectedPath = await window.electronAPI.selectDirectory();
+                if (selectedPath) {
+                    console.log('[setting] Selected download path:', selectedPath);
+                    document.getElementById('download-path').value = selectedPath;
+                }
+            } catch (error) {
+                console.error('[setting] Failed to select download path:', error);
+                alert('选择目录失败: ' + error.message);
+            }
+        });
+        
+        // 保存存储设置
+        document.getElementById('save-storage-settings').addEventListener('click', async () => {
+            try {
+                const cachePath = document.getElementById('cache-path').value;
+                const downloadPath = document.getElementById('download-path').value;
+                
+                console.log('[setting] Saving storage settings:', { cachePath, downloadPath });
+                
+                // 创建配置对象
+                const config = {
+                    cachePath: cachePath,
+                    downloadPath: downloadPath
+                };
+                
+                // 使用Electron API保存配置
+                await saveConfig(config);
+                alert('存储设置已更新');
+            } catch (error) {
+                console.error('[setting] Failed to save storage settings:', error);
+                alert('保存存储设置失败: ' + error.message);
+            }
+        });
+        
+        // 清理缓存
+        const clearCacheBtn = document.getElementById('clear-cache');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => {
+                if (confirm('确定要清理缓存吗？')) {
+                    // 模拟清理缓存
+                    document.getElementById('cache-size').textContent = '0 MB';
+                    alert('缓存已清理');
+                }
+            });
+        }
+        
+        // 清理IndexedDB缓存
+        document.getElementById('clear-indexeddb').addEventListener('click', () => {
+            if (confirm('确定要清理IndexedDB缓存吗？')) {
+                try {
+                    const request = indexedDB.open('ModernChatCache', 3);
+                    
+                    request.onsuccess = function(event) {
+                        const db = event.target.result;
+                        
+                        // 获取所有对象存储的名称
+                        const storeNames = db.objectStoreNames;
+                        
+                        // 创建事务
+                        const transaction = db.transaction(storeNames, 'readwrite');
+                        
+                        // 清空所有对象存储
+                        storeNames.forEach(storeName => {
+                            const store = transaction.objectStore(storeName);
+                            store.clear();
+                        });
+                        
+                        transaction.oncomplete = async function() {
+                            alert('IndexedDB缓存已清理');
+                            db.close();
+                            await calculateIndexedDBStorage();
+                            await refreshCacheList();
+                        };
+                        
+                        transaction.onerror = function() {
+                            alert('清理IndexedDB缓存失败');
+                            db.close();
+                        };
+                    };
+                    
+                    request.onerror = function() {
+                        alert('打开IndexedDB数据库失败');
+                    };
+                } catch (error) {
+                    console.error('[setting] Failed to clear IndexedDB:', error);
+                    alert('清理IndexedDB缓存失败: ' + error.message);
+                }
+            }
+        });
+        
+        function estimateEntryBytes(storeName, value) {
+            if (value == null) return 0;
+            if (storeName === 'videos' && value.blob instanceof Blob) {
+                return value.blob.size;
+            }
+            if (storeName === 'files' && typeof value.data === 'string') {
+                return value.data.length * 2;
+            }
+            try {
+                return new Blob([JSON.stringify(value)]).size;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function sniffDataUrlCategory(data) {
+            if (!data || typeof data !== 'string') return null;
+            const d = data.slice(0, 48).toLowerCase();
+            if (d.startsWith('data:video/')) return 'video';
+            if (d.startsWith('data:audio/')) return 'audio';
+            if (d.startsWith('data:image/')) return 'image';
+            return null;
+        }
+
+        function classifyUrlPathCategory(url) {
+            const u = ((url || '') + '').toLowerCase().split('?')[0];
+            if (/\.(mp4|webm|mov|mkv|avi|m4v|3gp|flv|wmv|ts|m2ts|mpeg|mpg)$/.test(u)) return 'video';
+            if (/\.(mp3|wav|ogg|opus|aac|m4a|amr|flac|wma)$/.test(u)) return 'audio';
+            if (/\.(jpg|jpeg|png|gif|webp|bmp|svg|ico)$/.test(u)) return 'image';
+            return 'file';
+        }
+
+        function classifyEntryBytes(storeName, value) {
+            const bytes = estimateEntryBytes(storeName, value);
+            const out = { image: 0, file: 0, video: 0, audio: 0 };
+            if (storeName === 'videos') {
+                out.video = bytes;
+                return out;
+            }
+            if (storeName === 'failedFiles') {
+                out.file = bytes;
+                return out;
+            }
+            if (storeName === 'messages') {
+                const type = (value.type || 'text').toLowerCase();
+                const content = (value.content || '') + '';
+                const dc = sniffDataUrlCategory(content);
+                if (dc === 'video') { out.video = bytes; return out; }
+                if (dc === 'audio') { out.audio = bytes; return out; }
+                if (dc === 'image') { out.image = bytes; return out; }
+                if (type === 'file' || content.includes('uploads/') || content.includes('chatuploads')) {
+                    const cat = classifyUrlPathCategory(content) || classifyUrlPathCategory(value.file_path || '');
+                    if (cat === 'video') out.video = bytes;
+                    else if (cat === 'audio') out.audio = bytes;
+                    else if (cat === 'image') out.image = bytes;
+                    else out.file = bytes;
+                    return out;
+                }
+                out.file = bytes;
+                return out;
+            }
+            if (storeName === 'files') {
+                const t = (value.type || '').toLowerCase();
+                const dataStr = typeof value.data === 'string' ? value.data : '';
+                const dc = sniffDataUrlCategory(dataStr);
+                if (dc === 'video') { out.video = bytes; return out; }
+                if (dc === 'audio') { out.audio = bytes; return out; }
+                if (dc === 'image') { out.image = bytes; return out; }
+                if (t === 'video') { out.video = bytes; return out; }
+                if (t === 'image') { out.image = bytes; return out; }
+                if (t === 'audio') { out.audio = bytes; return out; }
+                const cat = classifyUrlPathCategory(value.url || '');
+                if (cat === 'video') out.video = bytes;
+                else if (cat === 'audio') out.audio = bytes;
+                else if (cat === 'image') out.image = bytes;
+                else out.file = bytes;
+                return out;
+            }
+            out.file = bytes;
+            return out;
+        }
+
+        function sumOneStore(db, storeName) {
+            return new Promise((resolve) => {
+                const totals = { image: 0, file: 0, video: 0, audio: 0 };
+                try {
+                    const tx = db.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const req = store.openCursor();
+                    req.onerror = () => resolve(totals);
+                    req.onsuccess = (e) => {
+                        const cur = e.target.result;
+                        if (cur) {
+                            const c = classifyEntryBytes(storeName, cur.value);
+                            totals.image += c.image;
+                            totals.file += c.file;
+                            totals.video += c.video;
+                            totals.audio += c.audio;
+                            cur.continue();
+                        } else {
+                            resolve(totals);
+                        }
+                    };
+                } catch (err) {
+                    console.warn('[setting] sumOneStore:', storeName, err);
+                    resolve({ image: 0, file: 0, video: 0, audio: 0 });
+                }
+            });
+        }
+
+        // 计算 IndexedDB 各对象仓库实际占用（与聊天页 ModernChatCache v2 一致）
+        async function calculateIndexedDBStorage() {
+            try {
+                await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('ModernChatCache', 3);
+                    request.onerror = () => {
+                        console.error('[setting] Failed to open IndexedDB');
+                        reject(request.error);
+                    };
+                    request.onsuccess = async (event) => {
+                        const db = event.target.result;
+                        const names = Array.from(db.objectStoreNames);
+                        const totalSize = { image: 0, file: 0, video: 0, audio: 0 };
+                        for (const name of names) {
+                            const part = await sumOneStore(db, name);
+                            totalSize.image += part.image;
+                            totalSize.file += part.file;
+                            totalSize.video += part.video;
+                            totalSize.audio += part.audio;
+                        }
+                        updateStorageDisplay(totalSize);
+                        db.close();
+                        resolve();
+                    };
+                });
+            } catch (error) {
+                console.error('[setting] Failed to calculate IndexedDB storage:', error);
+                updateStorageDisplay({ image: 0, file: 0, video: 0, audio: 0 });
+            }
+        }
+        
+        // 更新存储显示（元素已删除，此函数保留为空以避免错误）
+        function updateStorageDisplay(totalSize) {
+            // 存储信息显示已移除，此函数保留为空
+        }
+        
+        // HTML转义函数
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+        
+        // 格式化文件大小
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        let __cacheListRows = [];
+
+        async function getExportDownloadDir() {
+            const custom = (document.getElementById('download-path')?.value || '').trim();
+            if (custom && isElectronAPIAvailable() && await window.electronAPI.fs.existsSync(custom)) {
+                return custom;
+            }
+            const def = await getDefaultStoragePaths();
+            return custom || def.downloadPath;
+        }
+
+        function getFileCategory(storeName, value) {
+            if (storeName === 'messages') return 'messages';
+            if (storeName === 'videos') return 'videos';
+            if (storeName === 'files') {
+                const url = value.url || '';
+                const lowerUrl = url.toLowerCase();
+                if (lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/)) return 'images';
+                if (lowerUrl.match(/\.(mp3|wav|ogg|aac|m4a|flac)$/)) return 'audio';
+                return 'files';
+            }
+            return 'files';
+        }
+
+        function getIconClass(category) {
+            switch(category) {
+                case 'messages': return 'layui-icon layui-icon-reply-fill';
+                case 'videos': return 'layui-icon layui-icon-video';
+                case 'images': return 'layui-icon layui-icon-picture';
+                case 'audio': return 'layui-icon layui-icon-headset';
+                default: return 'layui-icon layui-icon-file-b';
+            }
+        }
+
+        function getCategoryDisplayName(category) {
+            switch(category) {
+                case 'messages': return 'Messages';
+                case 'videos': return 'Videos';
+                case 'images': return 'Pictures';
+                case 'audio': return 'Audio';
+                default: return 'Files';
+            }
+        }
+
+        async function refreshCacheList() {
+            const container = document.getElementById('cache-items-container');
+            const filter = document.getElementById('cache-filter-store')?.value || 'all';
+            if (!container) return;
+            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">正在加载…</div>';
+            __cacheListRows = [];
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const r = indexedDB.open('ModernChatCache', 3);
+                    r.onerror = () => reject(r.error);
+                    r.onsuccess = () => resolve(r.result);
+                });
+                const names = Array.from(db.objectStoreNames);
+                const want = (name) => filter === 'all' || name === filter;
+                for (const storeName of names) {
+                    if (storeName === 'failedFiles') continue;
+                    if (!want(storeName)) continue;
+                    const part = await new Promise((resolve) => {
+                        const rows = [];
+                        const tx = db.transaction(storeName, 'readonly');
+                        const store = tx.objectStore(storeName);
+                        const req = store.openCursor();
+                        req.onerror = () => resolve(rows);
+                        req.onsuccess = (e) => {
+                            const cur = e.target.result;
+                            if (!cur) {
+                                resolve(rows);
+                                return;
+                            }
+                            const key = cur.key;
+                            const val = cur.value;
+                            const bytes = estimateEntryBytes(storeName, val);
+                            let label = '';
+                            if (storeName === 'messages') {
+                                label = `[会话 ${val.contactId != null ? val.contactId : '?'}] #${val.id} ` + String(val.content || '').replace(/\s+/g, ' ').slice(0, 72);
+                            } else if (storeName === 'files' || storeName === 'videos') {
+                                label = String(val.url || key).replace(/\s+/g, ' ').slice(0, 100);
+                            } else {
+                                label = String(key).slice(0, 100);
+                            }
+                            const category = getFileCategory(storeName, val);
+                            rows.push({ store: storeName, key, label, bytes, value: val, category });
+                            cur.continue();
+                        };
+                    });
+                    __cacheListRows.push(...part);
+                }
+                db.close();
+                __cacheListRows.sort((a, b) => b.bytes - a.bytes);
+                if (__cacheListRows.length === 0) {
+                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">暂无缓存条目</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                __cacheListRows.forEach((row, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'cache-card';
+                    card.dataset.idx = String(i);
+                    
+                    const iconClass = getIconClass(row.category);
+                    
+                    const categoryName = getCategoryDisplayName(row.category);
+                    
+                    card.innerHTML = `
+                        <input type="checkbox" class="cache-card-checkbox" data-idx="${i}">
+                        <div class="cache-card-icon ${row.category}">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="cache-card-content">
+                            <div class="cache-card-title" title="${escapeHtml(row.label)}">${escapeHtml(row.label)}</div>
+                            <span class="cache-card-store">${categoryName}</span>
+                            <div class="cache-card-size">${formatSize(row.bytes)}</div>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', (e) => {
+                        if (e.target.type === 'checkbox') return;
+                        previewCachedFile(row);
+                    });
+                    
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error('[setting] refreshCacheList', err);
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #c00;">无法读取缓存列表</div>';
+            }
+        }
+
+        async function previewCachedFile(row) {
+            const { store, value, category } = row;
+            
+            if (category === 'messages') {
+                alert('消息缓存无法预览');
+                return;
+            }
+            
+            if (category === 'videos' && value.blob instanceof Blob) {
+                const url = URL.createObjectURL(value.blob);
+                window.open(`video-player.html?url=${encodeURIComponent(url)}&title=${encodeURIComponent(value.url || 'video')}`, '_blank');
+                return;
+            }
+            
+            if (category === 'images') {
+                if (store === 'files' && typeof value.data === 'string' && value.data.startsWith('data:')) {
+                    window.open(`image-viewer.html?url=${encodeURIComponent(value.data)}&title=${encodeURIComponent(value.url || 'image')}`, '_blank');
+                } else {
+                    alert('该图片缓存无法预览');
+                }
+                return;
+            }
+            
+
+            
+            alert('该文件类型不支持预览');
+        }
+
+        function dataUrlToBase64(dataUrl) {
+            const i = dataUrl.indexOf('base64,');
+            if (i === -1) return null;
+            return dataUrl.slice(i + 7);
+        }
+
+        async function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onloadend = () => {
+                    const s = fr.result;
+                    const b = dataUrlToBase64(s);
+                    resolve(b || '');
+                };
+                fr.onerror = reject;
+                fr.readAsDataURL(blob);
+            });
+        }
+
+        async function exportCacheRows(rows, baseDir) {
+            if (!isElectronAPIAvailable() || !window.electronAPI.fs.writeBinaryFile) {
+                alert('当前环境不支持导出（需要 Electron 客户端）');
+                return;
+            }
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            let ok = 0;
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                const sub = row.store;
+                let fileName = '';
+                let base64Payload = null;
+                let textPayload = null;
+                if (row.store === 'messages') {
+                    fileName = `message_${row.key}.json`;
+                    textPayload = JSON.stringify(row.value, null, 2);
+                } else if (row.store === 'files') {
+                    const url = row.value.url || String(row.key);
+                    const tail = url.split('/').pop().split('?')[0] || `file_${r}`;
+                    fileName = tail.replace(/[^a-zA-Z0-9._-]/g, '_');
+                    const data = row.value.data;
+                    if (typeof data === 'string' && data.startsWith('data:') && data.includes('base64,')) {
+                        base64Payload = dataUrlToBase64(data);
+                    } else if (typeof data === 'string') {
+                        textPayload = data;
+                    }
+                } else if (row.store === 'videos' && row.value.blob instanceof Blob) {
+                    const url = row.value.url || String(row.key);
+                    const tail = url.split('/').pop().split('?')[0] || `video_${r}`;
+                    fileName = tail.replace(/[^a-zA-Z0-9._-]/g, '_') || `video_${r}.bin`;
+                    if (!/\.[a-z0-9]+$/i.test(fileName)) fileName += '.mp4';
+                    base64Payload = await blobToBase64(row.value.blob);
+                } else if (row.store === 'failedFiles') {
+                    fileName = `failed_${r}.txt`;
+                    textPayload = String(row.key);
+                } else {
+                    fileName = `entry_${r}.json`;
+                    textPayload = JSON.stringify(row.value, null, 2);
+                }
+                const dir = await window.electronAPI.path.join(baseDir, 'ModernChatCacheExport', stamp, sub);
+                if (!await window.electronAPI.fs.existsSync(dir)) {
+                    await window.electronAPI.fs.mkdirSync(dir, { recursive: true });
+                }
+                const full = await window.electronAPI.path.join(dir, fileName);
+                if (base64Payload) {
+                    await window.electronAPI.fs.writeBinaryFile(full, base64Payload);
+                } else {
+                    await window.electronAPI.fs.writeFileSync(full, textPayload != null ? textPayload : '');
+                }
+                ok++;
+            }
+            alert(`已导出 ${ok} 条到下载目录下的 ModernChatCacheExport/${stamp}/`);
+        }
+
+        async function deleteCacheRows(rows) {
+            const db = await new Promise((resolve, reject) => {
+                const r = indexedDB.open('ModernChatCache', 3);
+                r.onerror = () => reject(r.error);
+                r.onsuccess = () => resolve(r.result);
+            });
+            const byStore = {};
+            rows.forEach((row) => {
+                if (!byStore[row.store]) byStore[row.store] = [];
+                byStore[row.store].push(row.key);
+            });
+            const names = Object.keys(byStore);
+            await new Promise((resolve, reject) => {
+                try {
+                    const tx = db.transaction(names, 'readwrite');
+                    names.forEach((storeName) => {
+                        const store = tx.objectStore(storeName);
+                        byStore[storeName].forEach((k) => store.delete(k));
+                    });
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+            db.close();
+        }
+
+        function setupCacheManagerUI() {
+            const selAll = document.getElementById('cache-select-all');
+            if (selAll) {
+                selAll.addEventListener('change', () => {
+                    document.querySelectorAll('.cache-card-checkbox').forEach((cb) => { cb.checked = selAll.checked; });
+                });
+            }
+            document.getElementById('cache-refresh-list')?.addEventListener('click', async () => {
+                await calculateIndexedDBStorage();
+                await refreshCacheList();
+            });
+            document.getElementById('cache-filter-store')?.addEventListener('change', () => refreshCacheList());
+            document.getElementById('cache-delete-selected')?.addEventListener('click', async () => {
+                const idxs = [...document.querySelectorAll('.cache-card-checkbox:checked')].map((cb) => parseInt(cb.dataset.idx, 10)).filter((n) => !isNaN(n));
+                if (!idxs.length) {
+                    alert('请先勾选要删除的条目');
+                    return;
+                }
+                if (!confirm(`确定删除选中的 ${idxs.length} 条缓存？`)) return;
+                const rows = idxs.map((i) => __cacheListRows[i]).filter(Boolean);
+                try {
+                    await deleteCacheRows(rows);
+                    await calculateIndexedDBStorage();
+                    await refreshCacheList();
+                    if (selAll) selAll.checked = false;
+                } catch (e) {
+                    console.error(e);
+                    alert('删除失败: ' + (e.message || e));
+                }
+            });
+            document.getElementById('cache-export-selected')?.addEventListener('click', async () => {
+                const idxs = [...document.querySelectorAll('.cache-card-checkbox:checked')].map((cb) => parseInt(cb.dataset.idx, 10)).filter((n) => !isNaN(n));
+                if (!idxs.length) {
+                    alert('请先勾选要导出的条目');
+                    return;
+                }
+                const baseDir = await getExportDownloadDir();
+                const rows = idxs.map((i) => __cacheListRows[i]).filter(Boolean);
+                try {
+                    await exportCacheRows(rows, baseDir);
+                } catch (e) {
+                    console.error(e);
+                    alert('导出失败: ' + (e.message || e));
+                }
+            });
+            document.getElementById('cache-export-all')?.addEventListener('click', async () => {
+                const filter = document.getElementById('cache-filter-store')?.value || 'all';
+                if (!confirm(filter === 'all' ? '确定导出当前列表中的全部缓存？' : `确定导出「${filter}」中的全部条目？`)) return;
+                const baseDir = await getExportDownloadDir();
+                try {
+                    await exportCacheRows([...__cacheListRows], baseDir);
+                } catch (e) {
+                    console.error(e);
+                    alert('导出失败: ' + (e.message || e));
+                }
+            });
+            document.getElementById('cache-clear-store')?.addEventListener('click', async () => {
+                const filter = document.getElementById('cache-filter-store')?.value || 'all';
+                if (!confirm(filter === 'all' ? '确定清空所有 IndexedDB 仓库？此操作不可恢复。' : `确定清空仓库「${filter}」的全部数据？`)) return;
+                try {
+                    const db = await new Promise((resolve, reject) => {
+                        const r = indexedDB.open('ModernChatCache', 3);
+                        r.onerror = () => reject(r.error);
+                        r.onsuccess = () => resolve(r.result);
+                    });
+                    const names = filter === 'all' ? Array.from(db.objectStoreNames) : [filter];
+                    await new Promise((resolve, reject) => {
+                        try {
+                            const tx = db.transaction(names, 'readwrite');
+                            names.forEach((n) => tx.objectStore(n).clear());
+                            tx.oncomplete = () => resolve();
+                            tx.onerror = () => reject(tx.error);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                    db.close();
+                    await calculateIndexedDBStorage();
+                    await refreshCacheList();
+                    if (selAll) selAll.checked = false;
+                } catch (e) {
+                    console.error(e);
+                    alert('清空失败: ' + (e.message || e));
+                }
+            });
+        }
+        
+        // 加载主题设置
+        async function loadThemeSettings() {
+            // 从 localStorage 加载主题设置
+            const themeColor = localStorage.getItem('themeColor') || 'blue';
+            const themeMode = localStorage.getItem('themeMode') || 'light';
+            const animationEnabled = localStorage.getItem('animationEnabled') !== 'false';
+            
+            // 设置表单值
+            document.querySelector(`input[name="theme-color"][value="${themeColor}"]`).checked = true;
+            document.querySelector(`input[name="theme-mode"][value="${themeMode}"]`).checked = true;
+            document.getElementById('animation-enabled').checked = animationEnabled;
+        }
+        
+        // 保存主题设置
+        document.getElementById('save-theme').addEventListener('click', () => {
+            const themeColor = document.querySelector('input[name="theme-color"]:checked').value;
+            const themeMode = document.querySelector('input[name="theme-mode"]:checked').value;
+            const animationEnabled = document.getElementById('animation-enabled').checked;
+            
+            // 保存到 localStorage
+            localStorage.setItem('themeColor', themeColor);
+            localStorage.setItem('themeMode', themeMode);
+            localStorage.setItem('animationEnabled', animationEnabled);
+            
+            // 模拟保存设置
+            alert('主题设置已保存');
+        });
+        
+        // 加载个人资料设置
+        async function loadProfileSettings() {
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'credentials': 'include'
+                    },
+                    body: JSON.stringify({
+                        resource: 'user',
+                        action: 'get_info'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    document.getElementById('username').value = result.data.name || '';
+                    document.getElementById('email').value = result.data.email || '';
+                    document.getElementById('phone').value = result.data.phone || '';
+                } else {
+                    console.error('[setting] 获取用户信息失败:', result.message);
+                    // 如果API失败，从 localStorage 加载
+                    document.getElementById('username').value = localStorage.getItem('username') || '';
+                    document.getElementById('email').value = localStorage.getItem('email') || '';
+                    document.getElementById('phone').value = localStorage.getItem('phone') || '';
+                }
+            } catch (error) {
+                console.error('[setting] 请求用户信息API失败:', error);
+                // 如果请求失败，从 localStorage 加载
+                document.getElementById('username').value = localStorage.getItem('username') || '';
+                document.getElementById('email').value = localStorage.getItem('email') || '';
+                document.getElementById('phone').value = localStorage.getItem('phone') || '';
+            }
+        }
+        
+        // 保存个人资料
+        document.getElementById('save-profile').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            
+            if (!username) {
+                alert('请输入用户名');
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'credentials': 'include'
+                    },
+                    body: JSON.stringify({
+                        resource: 'user',
+                        action: 'update_info',
+                        name: username
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    localStorage.setItem('username', username);
+                    alert('个人资料已保存');
+                } else {
+                    alert('保存失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('[setting] 保存用户信息失败:', error);
+                localStorage.setItem('username', username);
+                alert('个人资料已保存（本地）');
+            }
+        });
+        
+        // 加载隐私设置
+        async function loadPrivacySettings() {
+            // 从 localStorage 加载隐私设置
+            const showOnlineStatus = localStorage.getItem('showOnlineStatus') !== 'false';
+            const showReadReceipt = localStorage.getItem('showReadReceipt') !== 'false';
+            // 设置表单值
+            document.getElementById('show-online-status').checked = showOnlineStatus;
+            document.getElementById('show-read-receipt').checked = showReadReceipt;
+        }
+        
+        // 保存隐私设置
+        document.getElementById('save-privacy').addEventListener('click', () => {
+            const showOnlineStatus = document.getElementById('show-online-status').checked;
+            const showReadReceipt = document.getElementById('show-read-receipt').checked;
+            
+            // 保存到 localStorage
+            localStorage.setItem('showOnlineStatus', showOnlineStatus);
+            localStorage.setItem('showReadReceipt', showReadReceipt);
+            
+            alert('隐私设置已保存');
+        });
+        
+        // 加载通知设置
+        async function loadNotificationSettings() {
+            // 从 localStorage 加载通知设置
+            const enableNotifications = localStorage.getItem('enableNotifications') !== 'false';
+            const soundNotifications = localStorage.getItem('soundNotifications') !== 'false';
+            const vibrateNotifications = localStorage.getItem('vibrateNotifications') !== 'false';
+            
+            // 设置表单值
+            document.getElementById('enable-notifications').checked = enableNotifications;
+            document.getElementById('sound-notifications').checked = soundNotifications;
+            document.getElementById('vibrate-notifications').checked = vibrateNotifications;
+        }
+        
+        // 保存通知设置
+        document.getElementById('save-notifications').addEventListener('click', () => {
+            const enableNotifications = document.getElementById('enable-notifications').checked;
+            const soundNotifications = document.getElementById('sound-notifications').checked;
+            const vibrateNotifications = document.getElementById('vibrate-notifications').checked;
+            
+            // 保存到 localStorage
+            localStorage.setItem('enableNotifications', enableNotifications);
+            localStorage.setItem('soundNotifications', soundNotifications);
+            localStorage.setItem('vibrateNotifications', vibrateNotifications);
+            
+            alert('通知设置已保存');
+        });
+        
+        // 删除账户
+        document.getElementById('delete-account').addEventListener('click', () => {
+            if (confirm('确定要删除账户吗？此操作不可撤销！')) {
+                if (confirm('再次确认：您确定要永久删除账户吗？')) {
+                    alert('账户删除功能正在开发中...');
+                }
+            }
+        });
+        
+        if (window.layui && typeof layui.use === 'function') {
+            layui.use('form', function(){
+                var form = layui.form;
+                form.render();
+            });
+        }
+    </script>
+</body>
+</html>

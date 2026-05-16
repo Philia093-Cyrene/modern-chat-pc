@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>截图工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; cursor: crosshair; background: rgba(0, 0, 0, 0.3); }
+        #screenshot-area { position: absolute; border: 2px solid #00a8ff; background: rgba(0, 168, 255, 0.1); display: none; }
+        #toolbar {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(50, 50, 50, 0.95); border-radius: 8px; padding: 10px;
+            display: none; z-index: 1000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        .tool-btn {
+            width: 40px; height: 40px; margin: 0 5px; border: none; border-radius: 6px;
+            background: transparent; color: white; font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .tool-btn:hover { background: rgba(255, 255, 255, 0.2); }
+        .tool-btn.active { background: rgba(0, 168, 255, 0.5); }
+        #cancel-btn { color: #ff4757; }
+        #confirm-btn { color: #2ed573; }
+        #draw-color { width: 40px; height: 40px; border: none; border-radius: 6px; cursor: pointer; background: transparent; }
+        #draw-color::-webkit-color-swatch-wrapper { padding: 5px; }
+        #draw-color::-webkit-color-swatch { border-radius: 4px; border: 2px solid #333; }
+        #draw-size { width: 60px; height: 40px; border: 1px solid #555; border-radius: 6px; background: #333; color: white; padding: 0 5px; }
+    </style>
+</head>
+<body>
+    <div id="screenshot-area"></div>
+    <div id="toolbar">
+        <button class="tool-btn active" id="rect-tool" title="矩形截图">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="line-tool" title="直线">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="19" x2="19" y2="5"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="arrow-tool" title="箭头">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="blur-tool" title="马赛克">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="text-tool" title="文字">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+        </button>
+        <input type="color" id="draw-color" value="#ff4757" title="颜色">
+        <input type="range" id="draw-size" min="1" max="30" value="3" title="线条粗细">
+        <button class="tool-btn" id="undo-btn" title="撤销">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="cancel-btn" title="取消 (ESC)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="confirm-btn" title="确认 (Enter)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // 使用 Electron API（兼容新版本）
+        const { ipcRenderer } = require('electron');
+        // 通过IPC从主进程获取屏幕源
+        const getDesktopSources = async () => {
+            return await ipcRenderer.invoke('desktop-capturer-get-sources');
+        };
+
+        const screenshotArea = document.getElementById('screenshot-area');
+        const toolbar = document.getElementById('toolbar');
+        const rectTool = document.getElementById('rect-tool');
+        const lineTool = document.getElementById('line-tool');
+        const arrowTool = document.getElementById('arrow-tool');
+        const blurTool = document.getElementById('blur-tool');
+        const textTool = document.getElementById('text-tool');
+        const drawColor = document.getElementById('draw-color');
+        const drawSize = document.getElementById('draw-size');
+        const undoBtn = document.getElementById('undo-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const confirmBtn = document.getElementById('confirm-btn');
+
+        let currentTool = 'rect';
+        let isDrawing = false;
+        let startPos = { x: 0, y: 0 };
+        let endPos = { x: 0, y: 0 };
+        let canvas = null;
+        let ctx = null;
+        let overlayCanvas = null;
+        let overlayCtx = null;
+        let history = [];
+        let screenshotImage = null;
+        let screenSize = { width: 0, height: 0 };
+        let textInput = null;
+        let textInputPos = { x: 0, y: 0 };
+
+        // 初始化截图
+        async function initScreenshot() {
+            try {
+                console.log('[Screenshot] 初始化截图...');
+                
+                // 获取屏幕尺寸（通过 Electron API 获取真实屏幕尺寸）
+                const displays = await ipcRenderer.invoke('get-displays');
+                let totalWidth = 0;
+                let maxHeight = 0;
+                for (const display of displays) {
+                    totalWidth = Math.max(totalWidth, display.bounds.x + display.bounds.width);
+                    maxHeight = Math.max(maxHeight, display.bounds.y + display.bounds.height);
+                }
+                screenSize.width = totalWidth;
+                screenSize.height = maxHeight;
+                
+                console.log('[Screenshot] 屏幕尺寸:', screenSize);
+                
+                // 通过IPC从主进程获取屏幕源
+                const sources = await getDesktopSources();
+                console.log('[Screenshot] 通过IPC获取到屏幕源:', sources.length);
+                
+                if (sources.length === 0) {
+                    throw new Error('无法获取屏幕源');
+                }
+                
+                // 创建底层canvas（存储已完成的绘制）
+                canvas = document.createElement('canvas');
+                canvas.width = screenSize.width;
+                canvas.height = screenSize.height;
+                canvas.style.position = 'absolute';
+                canvas.style.top = '0';
+                canvas.style.left = '0';
+                canvas.style.zIndex = '10';
+                document.body.appendChild(canvas);
+                ctx = canvas.getContext('2d');
+                
+                // 创建覆盖层canvas（用于实时绘制预览）
+                overlayCanvas = document.createElement('canvas');
+                overlayCanvas.width = screenSize.width;
+                overlayCanvas.height = screenSize.height;
+                overlayCanvas.style.position = 'absolute';
+                overlayCanvas.style.top = '0';
+                overlayCanvas.style.left = '0';
+                overlayCanvas.style.zIndex = '11';
+                document.body.appendChild(overlayCanvas);
+                overlayCtx = overlayCanvas.getContext('2d');
+                
+                // 获取所有屏幕的图像数据（异步加载所有图片）
+                const screenImages = [];
+                for (const source of sources) {
+                    if (source.thumbnail && source.thumbnail.toDataURL) {
+                        screenImages.push({ 
+                            dataUrl: source.thumbnail.toDataURL(), 
+                            source 
+                        });
+                    }
+                }
+                
+                // 如果没有获取到屏幕图像，显示错误提示
+                if (screenImages.length === 0) {
+                    console.warn('[Screenshot] 无法获取屏幕源图像');
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fillRect(0, 0, screenSize.width, screenSize.height);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('无法捕获屏幕，请检查系统权限设置', screenSize.width / 2, screenSize.height / 2);
+                    saveHistory();
+                    toolbar.style.display = 'flex';
+                    return;
+                }
+                
+                // 异步加载并绘制所有屏幕图像
+                let loadedCount = 0;
+                const loadAndDrawImage = (screenImage) => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const match = screenImage.source.name.match(/Screen (\d+)/);
+                            let offsetX = 0, offsetY = 0;
+                            if (match) {
+                                const screenIndex = parseInt(match[1]) - 1;
+                                if (displays[screenIndex]) {
+                                    offsetX = displays[screenIndex].bounds.x;
+                                    offsetY = displays[screenIndex].bounds.y;
+                                }
+                            }
+                            ctx.drawImage(img, offsetX, offsetY);
+                            loadedCount++;
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            console.warn('[Screenshot] 加载屏幕图像失败:', screenImage.source.name);
+                            loadedCount++;
+                            resolve();
+                        };
+                        img.src = screenImage.dataUrl;
+                    });
+                };
+                
+                // 等待所有图像加载完成
+                await Promise.all(screenImages.map(loadAndDrawImage));
+                
+                // 如果没有任何图像加载成功，显示错误提示
+                if (loadedCount === screenImages.length && loadedCount > 0) {
+                    console.log('[Screenshot] 所有屏幕图像加载完成');
+                }
+                
+                // 保存原始截图
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0);
+                screenshotImage = tempCanvas;
+                
+                toolbar.style.display = 'flex';
+                console.log('[Screenshot] 初始化完成');
+                
+            } catch (error) {
+                console.error('[Screenshot] 初始化失败:', error);
+                alert('截图初始化失败: ' + error.message);
+                window.close();
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            const toolBtn = document.getElementById(tool + '-tool');
+            if (toolBtn) {
+                toolBtn.classList.add('active');
+            }
+            
+            if (currentTool !== 'text' && textInput) {
+                textInput.remove();
+                textInput = null;
+            }
+        }
+
+        function createTextInput(x, y) {
+            // 如果已经有输入框，先移除它
+            if (textInput) {
+                textInput.remove();
+                textInput = null;
+            }
+            
+            textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.placeholder = '输入文字...';
+            textInput.style.position = 'absolute';
+            textInput.style.left = x + 'px';
+            textInput.style.top = y + 'px';
+            textInput.style.zIndex = '100';
+            textInput.style.padding = '8px 12px';
+            textInput.style.fontSize = '24px';
+            textInput.style.border = '2px dashed ' + drawColor.value;
+            textInput.style.borderRadius = '6px';
+            textInput.style.background = 'rgba(255, 255, 255, 0.9)';
+            textInput.style.color = drawColor.value;
+            textInput.style.outline = 'none';
+            textInput.style.minWidth = '100px';
+            textInput.style.maxWidth = '400px';
+            textInput.style.fontWeight = 'bold';
+            textInput.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+            
+            textInputPos = { x, y };
+            document.body.appendChild(textInput);
+            textInput.focus();
+            
+            textInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    commitText();
+                } else if (e.key === 'Escape') {
+                    cancelTextInput();
+                }
+            });
+            
+            textInput.addEventListener('blur', () => {
+                if (textInput && textInput.value.trim()) {
+                    commitText();
+                } else {
+                    cancelTextInput();
+                }
+            });
+        }
+
+        function commitText() {
+            if (!textInput || !textInput.value.trim()) {
+                if (textInput) {
+                    textInput.remove();
+                    textInput = null;
+                }
+                return;
+            }
+            
+            // 绘制前先保存历史
+            saveHistory();
+            
+            const text = textInput.value;
+            const x = textInputPos.x;
+            const y = textInputPos.y;
+            const fontSize = parseInt(drawSize.value) * 4 + 16 || 24;
+            
+            ctx.font = `${fontSize}px Arial, sans-serif`;
+            ctx.fillStyle = drawColor.value;
+            ctx.textBaseline = 'top';
+            ctx.fillText(text, x, y);
+            
+            textInput.remove();
+            textInput = null;
+        }
+
+        function cancelTextInput() {
+            if (textInput) {
+                textInput.remove();
+                textInput = null;
+            }
+        }
+
+        function drawBlur(isPreview = true) {
+            const blurSize = parseInt(drawSize.value) * 3 || 12;
+            const x = Math.min(startPos.x, endPos.x);
+            const y = Math.min(startPos.y, endPos.y);
+            const width = Math.abs(endPos.x - startPos.x);
+            const height = Math.abs(endPos.y - startPos.y);
+            
+            if (width > 5 && height > 5) {
+                const targetCtx = isPreview ? overlayCtx : ctx;
+                
+                if (isPreview) {
+                    targetCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                    targetCtx.drawImage(canvas, 0, 0);
+                }
+                
+                // 使用QQ风格的黑白交替马赛克
+                const blockSize = blurSize;
+                for (let by = 0; by < height; by += blockSize) {
+                    for (let bx = 0; bx < width; bx += blockSize) {
+                        // 计算当前方块是否为黑或白（棋盘格模式）
+                        const isEven = (Math.floor(by / blockSize) + Math.floor(bx / blockSize)) % 2 === 0;
+                        targetCtx.fillStyle = isEven ? '#2a2a2a' : '#e6e6e6';
+                        
+                        // 绘制方块
+                        const drawWidth = Math.min(blockSize, width - bx);
+                        const drawHeight = Math.min(blockSize, height - by);
+                        targetCtx.fillRect(x + bx, y + by, drawWidth, drawHeight);
+                    }
+                }
+            }
+        }
+
+        function saveHistory() {
+            const imageData = canvas.toDataURL();
+            history.push(imageData);
+            if (history.length > 10) history.shift();
+        }
+
+        function undo() {
+            if (history.length > 0) {
+                const lastImage = history.pop();
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = lastImage;
+            }
+        }
+
+        function drawRect() {
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            
+            const x = Math.min(startPos.x, endPos.x);
+            const y = Math.min(startPos.y, endPos.y);
+            const width = Math.abs(endPos.x - startPos.x);
+            const height = Math.abs(endPos.y - startPos.y);
+            
+            overlayCtx.strokeStyle = drawColor.value;
+            overlayCtx.lineWidth = 2;
+            overlayCtx.setLineDash([5, 5]);
+            overlayCtx.strokeRect(x, y, width, height);
+            overlayCtx.setLineDash([]);
+            overlayCtx.fillStyle = 'rgba(0, 168, 255, 0.1)';
+            overlayCtx.fillRect(x, y, width, height);
+        }
+
+        function drawLine(isPreview = true) {
+            const targetCtx = isPreview ? overlayCtx : ctx;
+            const targetCanvas = isPreview ? overlayCanvas : canvas;
+            
+            if (isPreview) {
+                targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+            }
+            
+            targetCtx.strokeStyle = drawColor.value;
+            targetCtx.lineWidth = drawSize.value;
+            targetCtx.lineCap = 'round';
+            targetCtx.beginPath();
+            targetCtx.moveTo(startPos.x, startPos.y);
+            targetCtx.lineTo(endPos.x, endPos.y);
+            targetCtx.stroke();
+        }
+
+        function drawArrow(isPreview = true) {
+            const targetCtx = isPreview ? overlayCtx : ctx;
+            const targetCanvas = isPreview ? overlayCanvas : canvas;
+            
+            if (isPreview) {
+                targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+            }
+            
+            targetCtx.strokeStyle = drawColor.value;
+            targetCtx.lineWidth = drawSize.value;
+            targetCtx.lineCap = 'round';
+            
+            const dx = endPos.x - startPos.x;
+            const dy = endPos.y - startPos.y;
+            const angle = Math.atan2(dy, dx);
+            const arrowLength = 15;
+            
+            targetCtx.beginPath();
+            targetCtx.moveTo(startPos.x, startPos.y);
+            targetCtx.lineTo(endPos.x, endPos.y);
+            targetCtx.stroke();
+            
+            targetCtx.beginPath();
+            targetCtx.moveTo(endPos.x, endPos.y);
+            targetCtx.lineTo(endPos.x - arrowLength * Math.cos(angle - Math.PI / 6), endPos.y - arrowLength * Math.sin(angle - Math.PI / 6));
+            targetCtx.moveTo(endPos.x, endPos.y);
+            targetCtx.lineTo(endPos.x - arrowLength * Math.cos(angle + Math.PI / 6), endPos.y - arrowLength * Math.sin(angle + Math.PI / 6));
+            targetCtx.stroke();
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (currentTool === 'text') {
+                createTextInput(e.clientX, e.clientY);
+                return;
+            }
+            
+            isDrawing = true;
+            startPos = { x: e.clientX, y: e.clientY };
+            endPos = { x: e.clientX, y: e.clientY };
+            
+            // 在开始绘制前保存历史
+            saveHistory();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            endPos = { x: e.clientX, y: e.clientY };
+            
+            if (currentTool === 'rect') {
+                drawRect();
+            } else if (currentTool === 'line') {
+                drawLine(true);
+            } else if (currentTool === 'arrow') {
+                drawArrow(true);
+            } else if (currentTool === 'blur') {
+                drawBlur(true);
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            endPos = { x: e.clientX, y: e.clientY };
+            isDrawing = false;
+            
+            // 将覆盖层的绘制合并到底层canvas
+            if (currentTool === 'rect') {
+                // 矩形选择框直接在底层绘制（带边框和半透明填充）
+                const x = Math.min(startPos.x, endPos.x);
+                const y = Math.min(startPos.y, endPos.y);
+                const width = Math.abs(endPos.x - startPos.x);
+                const height = Math.abs(endPos.y - startPos.y);
+                
+                if (width > 5 && height > 5) {
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = drawColor.value;
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, width, height);
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(0, 168, 255, 0.1)';
+                    ctx.fillRect(x, y, width, height);
+                }
+            } else if (currentTool === 'line') {
+                drawLine(false);
+            } else if (currentTool === 'arrow') {
+                drawArrow(false);
+            } else if (currentTool === 'blur') {
+                drawBlur(false);
+            }
+            
+            // 清除覆盖层
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        });
+
+        async function confirmScreenshot() {
+            const x = Math.min(startPos.x, endPos.x);
+            const y = Math.min(startPos.y, endPos.y);
+            const width = Math.abs(endPos.x - startPos.x);
+            const height = Math.abs(endPos.y - startPos.y);
+            
+            // 创建临时canvas合并底层和覆盖层
+            const combinedCanvas = document.createElement('canvas');
+            combinedCanvas.width = canvas.width;
+            combinedCanvas.height = canvas.height;
+            const combinedCtx = combinedCanvas.getContext('2d');
+            combinedCtx.drawImage(canvas, 0, 0);
+            combinedCtx.drawImage(overlayCanvas, 0, 0);
+            
+            let finalCanvas = combinedCanvas;
+            if (width > 10 && height > 10) {
+                finalCanvas = document.createElement('canvas');
+                finalCanvas.width = width;
+                finalCanvas.height = height;
+                const finalCtx = finalCanvas.getContext('2d');
+                finalCtx.drawImage(combinedCanvas, x, y, width, height, 0, 0, width, height);
+            }
+            
+            const dataUrl = finalCanvas.toDataURL('image/png');
+            const blob = await fetch(dataUrl).then(res => res.blob());
+            
+            // 复制到剪贴板
+            try {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                console.log('[Screenshot] 截图已复制到剪贴板');
+            } catch (err) {
+                console.error('[Screenshot] 复制到剪贴板失败:', err);
+            }
+            
+            // 保存到 Screenshot 文件夹
+            try {
+                const cacheDir = await window.electronAPI.path.join(await window.electronAPI.app.getPath('userData'), 'Screenshot');
+                
+                if (!await window.electronAPI.fs.existsSync(cacheDir)) {
+                    await window.electronAPI.fs.mkdirSync(cacheDir, { recursive: true });
+                    console.log('[Screenshot] 创建 Screenshot 文件夹:', cacheDir);
+                }
+                
+                const timestamp = Date.now();
+                const fileName = `screenshot_${timestamp}.png`;
+                const filePath = await window.electronAPI.path.join(cacheDir, fileName);
+                
+                const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+                await window.electronAPI.fs.writeBinaryFile(filePath, base64Data);
+                
+                console.log('[Screenshot] 截图已保存到:', filePath);
+            } catch (err) {
+                console.error('[Screenshot] 保存到文件失败:', err);
+            }
+            
+            // 清理之前可能遗留的处理标志
+            localStorage.removeItem('screenshot_processed');
+            
+            // 通过 localStorage 传递截图数据
+            localStorage.setItem('screenshot_data', dataUrl);
+            localStorage.setItem('screenshot_ready', 'true');
+            
+            // 使用 ipcRenderer 发送消息到主进程
+            ipcRenderer.invoke('screenshot-complete', dataUrl).catch(err => {
+                console.error('[Screenshot] 发送到主进程失败:', err);
+            });
+            
+            window.close();
+        }
+
+        function cancelScreenshot() {
+            ipcRenderer.invoke('screenshot-cancel').catch(err => {
+                console.error('[Screenshot] 发送取消消息失败:', err);
+            });
+            window.close();
+        }
+
+        rectTool.addEventListener('click', () => setTool('rect'));
+        lineTool.addEventListener('click', () => setTool('line'));
+        arrowTool.addEventListener('click', () => setTool('arrow'));
+        blurTool.addEventListener('click', () => setTool('blur'));
+        textTool.addEventListener('click', () => setTool('text'));
+        undoBtn.addEventListener('click', undo);
+        cancelBtn.addEventListener('click', cancelScreenshot);
+        confirmBtn.addEventListener('click', confirmScreenshot);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') cancelScreenshot();
+            if (e.key === 'Enter') confirmScreenshot();
+        });
+
+        initScreenshot();
+    </script>
+</body>
+</html>
